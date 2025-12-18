@@ -874,9 +874,12 @@
         }
       },
 
-      // Request notification permission (call on user interaction)
+      // Request notification permission (only once per session)
+      notificationRequested: false,
       requestNotificationPermission: function() {
+        if (this.notificationRequested) return;
         if ('Notification' in window && Notification.permission === 'default') {
+          this.notificationRequested = true;
           Notification.requestPermission();
         }
       },
