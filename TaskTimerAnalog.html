@@ -311,7 +311,7 @@
             <button class="color-option" style="background: #f1c40f;" data-color="#f1c40f" role="menuitem" aria-label="Yellow"></button>
           </div>
         </div>
-        <button class="mode-btn" id="darkModeBtn" title="Toggle dark mode" aria-label="Toggle dark mode">D</button>
+        <button class="mode-btn" id="darkModeBtn" title="Switch to dark mode" aria-label="Switch to dark mode">D</button>
         <button class="mode-btn" id="soundBtn" title="Toggle alarm sound" aria-label="Toggle alarm sound">🔔</button>
         <label>Labels:</label>
         <button class="mode-btn active" data-marks="15" title="Show 15-minute labels">15</button>
@@ -690,6 +690,7 @@
       previewFrame: null,
       alarmInterval: null
     };
+    window.state = state; // Expose for testing
 
     const el = {
       colorBtn: document.getElementById('colorBtn'),
@@ -1236,15 +1237,22 @@
             const endDate = new Date(now.getTime() + state.remaining * 60000);
             const h = endDate.getHours();
             const m = endDate.getMinutes();
+            const s = endDate.getSeconds();
             el.timeInput.value = h + ':' + (m < 10 ? '0' : '') + m;
-            state.endTime = m;
+            state.endTime = m + s / 60; // Preserve seconds precision
+            // No pause in END mode
+            el.goBtn.disabled = true;
           } else {
             // Show remaining minutes when switching to CCW/CW while running
             el.timeInput.value = Math.ceil(state.remaining);
             state.endTime = null;
+            // Enable pause in CCW/CW modes
+            el.goBtn.disabled = false;
+            el.goBtn.textContent = 'Pause';
+            el.goBtn.title = 'Pause the timer';
           }
-        } else if (state.mode === 'end' && !state.running && el.timeInput.value.trim()) {
-          // Handle preview animation on mode change
+        } else if (state.mode === 'end' && !state.running && !state.paused && el.timeInput.value.trim()) {
+          // Handle preview animation on mode change (only when not paused)
           const parsed = parseInput(el.timeInput.value.trim());
           if (parsed) {
             state.total = parsed.total;
@@ -1374,6 +1382,8 @@
       var savedDarkMode = ClockLogic.getCookie('clockDarkMode');
       if (savedDarkMode === '1') {
         document.body.classList.add('dark');
+        el.darkModeBtn.textContent = 'L';
+        el.darkModeBtn.title = 'Switch to light mode';
       }
 
       var savedSound = ClockLogic.getCookie('clockSound');
@@ -1399,6 +1409,8 @@
       }
       if (hashParams.dark === '1') {
         document.body.classList.add('dark');
+        el.darkModeBtn.textContent = 'L';
+        el.darkModeBtn.title = 'Switch to light mode';
       }
       if (hashParams.sound === 'off') {
         state.sound = false;
@@ -1432,6 +1444,8 @@
     el.darkModeBtn.addEventListener('click', function() {
       document.body.classList.toggle('dark');
       var isDark = document.body.classList.contains('dark');
+      el.darkModeBtn.textContent = isDark ? 'L' : 'D';
+      el.darkModeBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
       ClockLogic.setCookie('clockDarkMode', isDark ? '1' : '0', 365);
       ClockLogic.updateHash(state);
       initClockFace();
@@ -1651,6 +1665,8 @@
 
       if (e.code === 'Space') {
         e.preventDefault();
+        // No pause/resume in END mode
+        if (state.mode === 'end') return;
         if (state.running) pause();
         else if (state.paused) resume();
       } else if (e.code === 'KeyF') {

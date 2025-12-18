@@ -861,6 +861,111 @@ console.log('--------------------------------------------');
   dom.window.close();
 })();
 
+// Bug regression: Go button state should update when switching modes while running
+(function testGoButtonStateOnModeSwitchWhileRunning() {
+  const dom = createDOM();
+  const { document } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const goBtn = document.getElementById('goBtn');
+  const modeBtns = document.querySelectorAll('[data-mode]');
+
+  // Start timer in END mode (Go button should be disabled)
+  modeBtns[2].click();
+  timeInput.value = '14:30';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+  goBtn.click();
+  assertEqual(goBtn.disabled, true, 'Go button disabled in END mode');
+
+  // Switch to CCW mode - Go button should enable and show Pause
+  modeBtns[0].click();
+  assertEqual(goBtn.disabled, false, 'Go button enabled after switch to CCW');
+  assertEqual(goBtn.textContent, 'Pause', 'Go button shows Pause after switch to CCW');
+
+  dom.window.close();
+})();
+
+(function testGoButtonDisabledOnSwitchToEndWhileRunning() {
+  const dom = createDOM();
+  const { document } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const goBtn = document.getElementById('goBtn');
+  const modeBtns = document.querySelectorAll('[data-mode]');
+
+  // Start timer in CCW mode (Go button should show Pause)
+  timeInput.value = '30';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+  goBtn.click();
+  assertEqual(goBtn.textContent, 'Pause', 'Go button shows Pause in CCW');
+  assertEqual(goBtn.disabled, false, 'Go button enabled in CCW');
+
+  // Switch to END mode - Go button should be disabled
+  modeBtns[2].click();
+  assertEqual(goBtn.disabled, true, 'Go button disabled after switch to END');
+
+  dom.window.close();
+})();
+
+// Bug regression: Timer state should not be reset when switching modes while paused
+(function testTimerStatePreservedOnModeSwitchWhilePaused() {
+  const dom = createDOM();
+  const { document } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const goBtn = document.getElementById('goBtn');
+  const modeBtns = document.querySelectorAll('[data-mode]');
+
+  // Start timer in CCW mode with 10 minutes
+  timeInput.value = '10';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+  goBtn.click();
+  assertEqual(goBtn.textContent, 'Pause', 'Timer started');
+
+  // Pause the timer
+  goBtn.click();
+  assertEqual(goBtn.textContent, 'Play', 'Timer is paused');
+  assertEqual(dom.window.state.paused, true, 'state.paused is true');
+
+  // Save the remaining time before mode switch
+  const remainingBeforeSwitch = dom.window.state.remaining;
+
+  // Switch to END mode while paused - state should NOT reset
+  modeBtns[2].click();
+  assertEqual(dom.window.state.remaining, remainingBeforeSwitch, 'state.remaining preserved after mode switch while paused');
+
+  dom.window.close();
+})();
+
+// Bug regression: endTime should preserve seconds precision when switching to END mode
+(function testEndTimePreservesSecondsPrecision() {
+  const dom = createDOM();
+  const { document } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const goBtn = document.getElementById('goBtn');
+  const modeBtns = document.querySelectorAll('[data-mode]');
+
+  // Start timer in CCW mode
+  timeInput.value = '30';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+  goBtn.click();
+
+  // state.endTime is pre-calculated in CCW mode for mode switching support
+  const endTimeBeforeSwitch = dom.window.state.endTime;
+  assert(typeof endTimeBeforeSwitch === 'number', 'endTime is pre-calculated in CCW mode');
+
+  // Switch to END mode while running
+  modeBtns[2].click();
+
+  // state.endTime should include seconds as fraction
+  const endTime = dom.window.state.endTime;
+  assert(endTime !== null, 'endTime is set after switch to END');
+  assert(typeof endTime === 'number', 'endTime is a number with seconds precision');
+
+  dom.window.close();
+})();
+
 console.log('');
 
 console.log('Integration Tests: 60/120/180 Minute Circles');
@@ -1214,7 +1319,7 @@ console.log('----------------------------');
 
   // Static tooltips
   assertEqual(document.getElementById('colorBtn').title, 'Select clock color', 'Color button has tooltip');
-  assertEqual(document.getElementById('darkModeBtn').title, 'Toggle dark mode', 'Dark mode button has tooltip');
+  assertEqual(document.getElementById('darkModeBtn').title, 'Switch to dark mode', 'Dark mode button has tooltip');
   assertEqual(document.getElementById('fullscreenBtn').title, 'Go full-screen', 'Fullscreen button has tooltip');
 
   // Mode buttons
@@ -1304,6 +1409,33 @@ console.log('--------------------------------------');
   timeInput.focus();
   document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { code: 'Space' }));
   assertEqual(goBtn.textContent, 'Pause', 'Space ignored when input focused');
+
+  dom.window.close();
+})();
+
+(function testSpaceIgnoredInEndMode() {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'TaskTimerAnalog.html'), 'utf8');
+  const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true });
+  const { document } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const goBtn = document.getElementById('goBtn');
+  const modeBtns = document.querySelectorAll('[data-mode]');
+
+  // Switch to END mode and start timer
+  modeBtns[2].click();
+  timeInput.value = '14:30';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+  goBtn.click();
+  assert(goBtn.classList.contains('running'), 'Timer running in END mode');
+  assertEqual(goBtn.disabled, true, 'Go button disabled in END mode');
+
+  // Blur input so keyboard shortcuts can work
+  timeInput.blur();
+
+  // Space should NOT pause in END mode
+  document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { code: 'Space' }));
+  assert(dom.window.state.running, 'Space does not pause in END mode');
 
   dom.window.close();
 })();

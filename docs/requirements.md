@@ -94,5 +94,14 @@
 - [x] 78. Performance: darken() function memoized to avoid repeated calculations
 - [x] 79. Web Audio error handling: graceful fallback if AudioContext creation fails
 
+## Responsive Design
+- [x] 80. Auto-hide controls: controls fade to 10% opacity when timer running, show on hover (for narrow screens)
+
+## Mode Switching
+- [x] 81. Pause button follows mode: switching to END mode while running disables pause, switching to CCW/CW enables it
+- [x] 82. Pause survives mode switch: paused timer preserves remaining time when switching modes
+- [x] 83. Seconds precision: switching to END mode preserves seconds in end time (e.g., 13:45:25 not 13:45:00)
+- [x] 84. Space key respects mode: Space shortcut for pause/resume is disabled in END mode
+
 ## Future Enhancements
 - [ ] 61. Safari PiP support: re-enable when Safari supports canvas captureStream with PiP (check WebKit bug 181663)
