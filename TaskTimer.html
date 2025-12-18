@@ -1490,7 +1490,7 @@
         el.goBtn.title = 'Start the timer';
         // Enable Go button if input has valid value so user can restart
         var parsed = parseInput(el.timeInput.value.trim());
-        el.goBtn.disabled = !parsed || !parsed.time;
+        el.goBtn.disabled = !parsed || !parsed.total;
         updateTitle();
         startCompletionBlink();
         return;
