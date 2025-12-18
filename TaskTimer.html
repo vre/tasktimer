@@ -720,6 +720,9 @@
         if (state.displayMode === 'digital') {
           params.push('display=digital');
         }
+        if (state.timeValue) {
+          params.push('time=' + encodeURIComponent(state.timeValue));
+        }
         var hash = params.length > 0 ? '#' + params.join('&') : '';
         history.replaceState(null, '', window.location.pathname + hash);
       },
@@ -1002,6 +1005,7 @@
       marks: 15,
       sound: true,
       displayMode: 'analog',
+      timeValue: '',
       total: 0,
       remaining: 0,
       running: false,
@@ -1809,6 +1813,10 @@
       const value = e.target.value.trim();
       el.goBtn.disabled = !value;
 
+      // Update state and URL hash with time value
+      state.timeValue = value;
+      ClockLogic.updateHash(state);
+
       // Reset button when user types - stop any running timer
       if (state.running) {
         state.running = false;
@@ -1941,6 +1949,7 @@
       }
       if (hashParams.time) {
         el.timeInput.value = hashParams.time;
+        state.timeValue = hashParams.time;
         el.goBtn.disabled = false;
       }
 
