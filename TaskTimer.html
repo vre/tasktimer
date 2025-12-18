@@ -829,6 +829,11 @@
           navigator.setAppBadge(1).catch(function() {});
         }
 
+        // Vibrate on mobile (pattern matches beep timing: 750ms on, 375ms off, repeat 3x)
+        if ('vibrate' in navigator) {
+          navigator.vibrate([750, 375, 750, 375, 750]);
+        }
+
         // Generate beep sound (cached)
         if (!this.beepDataUri) {
           this.beepDataUri = this.generateBeepDataUri();

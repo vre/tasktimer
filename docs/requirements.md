@@ -121,6 +121,7 @@
 - [x] 93. Web Worker for background timer: reliable completion detection even when tab is in background or on different virtual desktop
 - [x] 94. Improved notifications: absolute icon URL, retry mechanism, dock badge (PWA)
 - [x] 95. Pre-cached audio: beep sound generated on page load for faster playback
+- [x] 96. Mobile vibration: Vibration API pattern (750ms on, 375ms off) synced with audio beeps
 
 ## Future Enhancements
 - [ ] 61. Safari PiP support: re-enable when Safari supports canvas captureStream with PiP (check WebKit bug 181663)
