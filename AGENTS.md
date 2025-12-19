@@ -22,12 +22,14 @@ Development in `src/` folder. Run `npm run build` to generate single-file `TaskT
 - `src/js/clock-logic.js` - Pure functions (testable, no side effects)
 - `src/js/app.js` - State, UI, event handlers
 - `TaskTimer.html` - Generated release file (do not edit directly)
+- `scripts/screenshots.sh` - Screenshot automation (Chrome headless + ImageMagick)
 
 ## Commands
 ```bash
-npm run build  # Generate TaskTimer.html from src/
-npm test       # Run tests (builds first, then tests TaskTimer.html)
-npm start      # Start local server at http://localhost:8080
+npm run build            # Generate TaskTimer.html from src/
+npm test                 # Run tests (builds first, then tests TaskTimer.html)
+npm start                # Start local server at http://localhost:8080
+./scripts/screenshots.sh # Regenerate documentation screenshots (requires npm start)
 ```
 
 ## Testing
