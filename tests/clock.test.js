@@ -1802,6 +1802,21 @@ console.log('------------------------------------');
   dom.window.close();
 })();
 
+(function testGoButtonEnabledWithTimeFromURL() {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'TaskTimer.html'), 'utf8');
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    url: 'http://localhost/#time=30'
+  });
+  const { document } = dom.window;
+
+  const goBtn = document.getElementById('goBtn');
+  assertEqual(goBtn.disabled, false, 'Go button enabled when time loaded from URL');
+
+  dom.window.close();
+})();
+
 console.log('');
 
 console.log('Bug Fixes: Go Button After Timer Ends');

@@ -97,11 +97,23 @@
       display: none;
     }
     body.running .controls {
-      opacity: 0.1;
+      opacity: 0;
+      pointer-events: none;
       transition: opacity 0.3s;
     }
-    body.running .controls:hover {
+    body.running .controls:hover,
+    body.running .controls:focus-within {
       opacity: 1;
+      pointer-events: auto;
+    }
+    /* Touch devices: class-based visibility overrides CSS rules */
+    .controls.touch-hidden {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    .controls.touch-visible {
+      opacity: 1 !important;
+      pointer-events: auto !important;
     }
     .fullscreen-btn {
       width: 2.5rem;
@@ -2295,6 +2307,72 @@
       }
     });
 
+    // Touch-friendly controls toggle for mobile devices
+    // Tap on clock area (outside controls) to toggle controls visibility when running
+    var clockContainer = document.querySelector('.clock-container');
+    var controls = document.querySelector('.controls');
+    var controlsVisible = true;
+
+    function showControls() {
+      if (!controls) return;
+      controls.classList.remove('touch-hidden');
+      controls.classList.add('touch-visible');
+      controlsVisible = true;
+    }
+
+    function hideControls() {
+      if (!controls) return;
+      controls.classList.remove('touch-visible');
+      controls.classList.add('touch-hidden');
+      controlsVisible = false;
+    }
+
+    // Auto-hide controls when timer starts (for touch devices that can't hover)
+    // Watch for body.running class to be added/removed
+    var bodyObserver = null;
+    if ('ontouchstart' in window && document.body) {
+      bodyObserver = new MutationObserver(function(mutations) {
+        // Guard against cleanup scenarios where body may be undefined
+        if (!document || !document.body) return;
+        mutations.forEach(function(mutation) {
+          if (mutation.attributeName === 'class') {
+            var isRunning = document.body.classList.contains('running');
+            if (isRunning && controlsVisible) {
+              setTimeout(hideControls, 500); // Small delay so user sees timer started
+            } else if (!isRunning && !controlsVisible) {
+              showControls();
+            }
+          }
+        });
+      });
+      bodyObserver.observe(document.body, { attributes: true });
+    }
+
+    clockContainer.addEventListener('touchend', function(e) {
+      // Only handle single-finger taps
+      if (e.changedTouches.length !== 1) return;
+      // Only toggle when timer is running
+      if (!state.running) return;
+
+      // Toggle controls visibility
+      if (controlsVisible) {
+        hideControls();
+      } else {
+        // Prevent click event from firing on now-visible controls
+        e.preventDefault();
+        showControls();
+      }
+    });
+
+    // Prevent controls from hiding when tapping on controls themselves
+    controls.addEventListener('touchend', function(e) {
+      e.stopPropagation();
+      // If controls not visible, show them but don't propagate to toggle
+      if (!controlsVisible) {
+        showControls();
+      }
+    });
+
     // Re-request wake lock when page becomes visible again
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden && state.running && !state.paused) {
@@ -2304,6 +2382,11 @@
 
     // Clean up resources on page unload
     window.addEventListener('beforeunload', function() {
+      // Disconnect mutation observer to prevent errors during cleanup
+      if (bodyObserver) {
+        bodyObserver.disconnect();
+        bodyObserver = null;
+      }
       if (state.animFrame) {
         cancelAnimationFrame(state.animFrame);
         state.animFrame = null;

@@ -163,6 +163,9 @@ Changes listed in chronological order. Deprecated features marked with ~striketh
 ### Build System
 111. Dev/release split: `src/` folder with separate JS/CSS files, `npm run build` generates single-file release
 
+### Mobile
+112. Touch auto-hide: controls fully hide on touch devices, tap clock to toggle, auto-shows when timer stops
+
 ## Future
 
 - Safari PiP support: re-enable when Safari supports canvas captureStream with PiP (WebKit bug 181663)
