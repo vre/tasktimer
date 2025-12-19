@@ -441,18 +441,15 @@
       overflow: hidden;
       position: relative;
     }
-    #wedgeCanvas {
+    .clock-wrapper {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
     }
-    svg {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      max-width: 100%;
-      max-height: 100%;
+    #wedgeCanvas, svg {
+      position: absolute;
+      top: 0;
+      left: 0;
     }
     .sr-only {
       position: absolute;
@@ -527,10 +524,12 @@
     </div>
     <button class="exit-fullscreen" id="exitFullscreenBtn">Exit Fullscreen</button>
     <div class="clock-container">
-      <canvas id="wedgeCanvas"></canvas>
-      <svg id="clock" width="100%" height="100%" viewBox="0 0 450 460" role="img" aria-labelledby="clockTitle">
-        <title id="clockTitle">Countdown Timer</title>
-      </svg>
+      <div class="clock-wrapper" id="clockWrapper">
+        <canvas id="wedgeCanvas"></canvas>
+        <svg id="clock" width="450" height="460" viewBox="0 0 450 460" role="img" aria-labelledby="clockTitle">
+          <title id="clockTitle">Countdown Timer</title>
+        </svg>
+      </div>
     </div>
     <div id="timerStatus" role="status" aria-live="polite" class="sr-only"></div>
     <canvas id="pipCanvas" width="300" height="300" style="display:none;"></canvas>
@@ -1205,43 +1204,53 @@
     };
     const wedgeCtx = el.wedgeCanvas ? el.wedgeCanvas.getContext('2d') : null;
 
-    // Canvas resize handler - matches SVG viewBox aspect ratio
-    function resizeWedgeCanvas() {
-      if (!el.wedgeCanvas || !wedgeCtx) return;
-      const container = el.wedgeCanvas.parentElement;
+    // Canvas and clock wrapper setup
+    const clockWrapper = document.getElementById('clockWrapper');
+    let canvasScale = 1;
+
+    function resizeClockWrapper() {
+      if (!clockWrapper) return;
+      const container = clockWrapper.parentElement;
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
 
-      // SVG viewBox is 450x460, calculate size to fit while maintaining aspect ratio
-      const svgAspect = 450 / 460;
-      const containerAspect = containerWidth / containerHeight;
+      // SVG viewBox is 450x460, calculate scale to fit container
+      const scaleX = containerWidth / 450;
+      const scaleY = containerHeight / 460;
+      const scale = Math.min(scaleX, scaleY);
+      canvasScale = scale;
 
-      let canvasWidth, canvasHeight;
-      if (containerAspect > svgAspect) {
-        // Container is wider, height is limiting
-        canvasHeight = containerHeight;
-        canvasWidth = canvasHeight * svgAspect;
-      } else {
-        // Container is taller, width is limiting
-        canvasWidth = containerWidth;
-        canvasHeight = canvasWidth / svgAspect;
+      // Size wrapper to scaled dimensions
+      const scaledWidth = 450 * scale;
+      const scaledHeight = 460 * scale;
+      clockWrapper.style.width = scaledWidth + 'px';
+      clockWrapper.style.height = scaledHeight + 'px';
+      clockWrapper.style.transform = 'translate(-50%, -50%)';
+
+      // Canvas renders at full display resolution for crisp edges
+      if (el.wedgeCanvas && wedgeCtx) {
+        const dpr = window.devicePixelRatio || 1;
+        el.wedgeCanvas.width = scaledWidth * dpr;
+        el.wedgeCanvas.height = scaledHeight * dpr;
+        el.wedgeCanvas.style.width = scaledWidth + 'px';
+        el.wedgeCanvas.style.height = scaledHeight + 'px';
+        // Scale context to draw in SVG viewBox coordinates
+        wedgeCtx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
       }
 
-      // Account for retina displays
-      const dpr = window.devicePixelRatio || 1;
-      el.wedgeCanvas.width = canvasWidth * dpr;
-      el.wedgeCanvas.height = canvasHeight * dpr;
-      el.wedgeCanvas.style.width = canvasWidth + 'px';
-      el.wedgeCanvas.style.height = canvasHeight + 'px';
-      wedgeCtx.scale(dpr, dpr);
-
-      // Store scale for rendering (canvas coords to SVG viewBox coords)
-      el.wedgeCanvas.canvasScale = canvasWidth / 450;
+      // SVG scales via CSS (vector graphics stay crisp)
+      if (el.svg) {
+        el.svg.style.width = scaledWidth + 'px';
+        el.svg.style.height = scaledHeight + 'px';
+      }
     }
 
-    // Initial resize
-    resizeWedgeCanvas();
-    window.addEventListener('resize', resizeWedgeCanvas);
+    resizeClockWrapper();
+    window.addEventListener('resize', function() {
+      resizeClockWrapper();
+      // Redraw canvas after resize (render defined later, called via reference)
+      if (typeof render === 'function') render();
+    });
 
     // Create layers for static face, dynamic wedges, and center timer text
     const faceLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1368,18 +1377,12 @@
     function render() {
       const circles = getCircles(state.remaining);
 
-      // Clear canvas and SVG wedge layer
+      // Render wedges to canvas using SVG viewBox coordinates
       if (wedgeCtx && el.wedgeCanvas) {
-        const scale = el.wedgeCanvas.canvasScale || 1;
-        const canvasCenter = CENTER * scale;
-        wedgeCtx.save();
-        wedgeCtx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
-        const dpr = window.devicePixelRatio || 1;
-        wedgeCtx.scale(dpr * scale, dpr * scale);
         ClockLogic.renderWedgesToCanvas(
           wedgeCtx,
-          el.wedgeCanvas.width / dpr,
-          el.wedgeCanvas.height / dpr,
+          450, // SVG viewBox width
+          460, // SVG viewBox height
           circles,
           state.mode,
           state.color,
@@ -1389,7 +1392,6 @@
           new Date(),
           CENTER
         );
-        wedgeCtx.restore();
       }
 
       // Clear SVG wedge layer (no longer used for rendering, kept for compatibility)
