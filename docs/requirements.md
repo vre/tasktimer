@@ -125,5 +125,8 @@
 - [x] 97. Time value in URL hash: shareable links include timer duration
 - [x] 98. Alarm off by default: notification permission requested only when alarm is enabled
 
+## Performance
+- [x] 99. Canvas rendering: dynamic wedge rendering moved from SVG to HTML5 Canvas for 60fps performance, SVG retained for static tick marks and completion animation
+
 ## Future Enhancements
 - [ ] 61. Safari PiP support: re-enable when Safari supports canvas captureStream with PiP (check WebKit bug 181663)

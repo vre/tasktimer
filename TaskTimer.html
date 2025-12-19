@@ -439,8 +439,16 @@
       min-height: 0;
       padding: 1rem;
       overflow: hidden;
+      position: relative;
+    }
+    #wedgeCanvas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
     svg {
+      position: relative;
       width: 100%;
       height: 100%;
       max-width: 100%;
@@ -519,6 +527,7 @@
     </div>
     <button class="exit-fullscreen" id="exitFullscreenBtn">Exit Fullscreen</button>
     <div class="clock-container">
+      <canvas id="wedgeCanvas"></canvas>
       <svg id="clock" width="100%" height="100%" viewBox="0 0 450 460" role="img" aria-labelledby="clockTitle">
         <title id="clockTitle">Countdown Timer</title>
       </svg>
@@ -931,6 +940,139 @@
           this.wakeLock.release();
           this.wakeLock = null;
         }
+      },
+
+      // Canvas rendering - pure functions for angle calculations
+      getTimerEndAngle: function(timerCircle, mode, endTime, now) {
+        if (mode === 'end') {
+          var curMin = now.getMinutes() + now.getSeconds() / 60;
+          return (curMin / 60) * 360 - 90;
+        }
+        if (mode === 'cw') {
+          return ((60 - timerCircle.t) / 60) * 360 - 90;
+        }
+        return (timerCircle.t / 60) * 360 - 90;
+      },
+
+      getWedgeAngles: function(circle, timerEnd, mode, endTime, now) {
+        if (circle.full) {
+          return { start: timerEnd, end: timerEnd + 360 };
+        }
+        if (mode === 'end') {
+          var curMin = now.getMinutes() + now.getSeconds() / 60;
+          var start = (curMin / 60) * 360 - 90;
+          var end = (endTime / 60) * 360 - 90;
+          if (end < start) end += 360;
+          return { start: start, end: end };
+        }
+        if (mode === 'cw') {
+          return { start: ((60 - circle.t) / 60) * 360 - 90, end: -90 };
+        }
+        return { start: -90, end: (circle.t / 60) * 360 - 90 };
+      },
+
+      // Render wedges to canvas context
+      renderWedgesToCanvas: function(ctx, width, height, circles, mode, color, running, displayMode, endTime, now, center) {
+        var self = this;
+        ctx.clearRect(0, 0, width, height);
+        if (circles.length === 0) return;
+
+        var timerEnd = this.getTimerEndAngle(circles[0], mode, endTime, now);
+        var opacity = running ? 1 : 0.2;
+        var numCircles = circles.length;
+        var RING_ZONE_WIDTH = 60;
+        var RING_GAP = 2;
+        var RING_ZONE_OUTER = 180;
+        var DARKEN = { MIDDLE: 0.7, INNER: 0.5 };
+        var RADIUS = { INNER: 60 };
+
+        var ringWidth = displayMode === 'digital'
+          ? (RING_ZONE_WIDTH - (numCircles - 1) * RING_GAP) / numCircles
+          : undefined;
+
+        for (var i = 0; i < circles.length; i++) {
+          var c = circles[i];
+          var radius = c.r;
+
+          // Digital mode: override radius to fit in outer 1/3 zone
+          if (displayMode === 'digital') {
+            radius = RING_ZONE_OUTER - i * (ringWidth + RING_GAP);
+          }
+
+          var angles = this.getWedgeAngles(c, timerEnd, mode, endTime, now);
+          var colorFactor = displayMode === 'digital'
+            ? (i === 0 ? 0.85 : (i === 1 ? DARKEN.MIDDLE : DARKEN.INNER))
+            : (c.r === RADIUS.INNER ? DARKEN.INNER : DARKEN.MIDDLE);
+          var fillColor = c.full ? this.darken(color, colorFactor) : color;
+
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.fillStyle = fillColor;
+          ctx.strokeStyle = fillColor;
+          ctx.lineWidth = 2;
+
+          var startRad = angles.start * Math.PI / 180;
+          var endRad = angles.end * Math.PI / 180;
+          var innerR = displayMode === 'digital' ? radius - ringWidth : 0;
+
+          if (c.full) {
+            // Full circle/donut
+            ctx.beginPath();
+            if (displayMode === 'digital') {
+              // Donut shape
+              ctx.arc(center, center, radius, 0, Math.PI * 2);
+              ctx.arc(center, center, innerR, 0, Math.PI * 2, true);
+            } else {
+              // Full circle
+              ctx.arc(center, center, radius, 0, Math.PI * 2);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            // Edge line
+            ctx.beginPath();
+            var edgeX = center + radius * Math.cos(startRad);
+            var edgeY = center + radius * Math.sin(startRad);
+            if (displayMode === 'digital') {
+              ctx.moveTo(center + innerR * Math.cos(startRad), center + innerR * Math.sin(startRad));
+            } else {
+              ctx.moveTo(center, center);
+            }
+            ctx.lineTo(edgeX, edgeY);
+            ctx.stroke();
+          } else {
+            // Partial wedge
+            ctx.beginPath();
+            if (displayMode === 'digital') {
+              // Ring arc
+              ctx.arc(center, center, radius, startRad, endRad);
+              ctx.arc(center, center, innerR, endRad, startRad, true);
+              ctx.closePath();
+            } else {
+              // Pie wedge
+              ctx.moveTo(center, center);
+              ctx.arc(center, center, radius, startRad, endRad);
+              ctx.closePath();
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            // Moving edge line
+            var movingRad = mode === 'ccw' ? endRad : startRad;
+            var movingX = center + radius * Math.cos(movingRad);
+            var movingY = center + radius * Math.sin(movingRad);
+            ctx.beginPath();
+            ctx.strokeStyle = '#000';
+            if (displayMode === 'digital') {
+              ctx.moveTo(center + innerR * Math.cos(movingRad), center + innerR * Math.sin(movingRad));
+            } else {
+              ctx.moveTo(center, center);
+            }
+            ctx.lineTo(movingX, movingY);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
       }
     };
 
@@ -1051,6 +1193,7 @@
       timeInput: document.getElementById('time'),
       goBtn: document.getElementById('goBtn'),
       svg: document.getElementById('clock'),
+      wedgeCanvas: document.getElementById('wedgeCanvas'),
       darkModeBtn: document.getElementById('darkModeBtn'),
       soundBtn: document.getElementById('soundBtn'),
       displayModeBtn: document.getElementById('displayModeBtn'),
@@ -1060,6 +1203,45 @@
       pipCanvas: document.getElementById('pipCanvas'),
       pipVideo: document.getElementById('pipVideo')
     };
+    const wedgeCtx = el.wedgeCanvas ? el.wedgeCanvas.getContext('2d') : null;
+
+    // Canvas resize handler - matches SVG viewBox aspect ratio
+    function resizeWedgeCanvas() {
+      if (!el.wedgeCanvas || !wedgeCtx) return;
+      const container = el.wedgeCanvas.parentElement;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+
+      // SVG viewBox is 450x460, calculate size to fit while maintaining aspect ratio
+      const svgAspect = 450 / 460;
+      const containerAspect = containerWidth / containerHeight;
+
+      let canvasWidth, canvasHeight;
+      if (containerAspect > svgAspect) {
+        // Container is wider, height is limiting
+        canvasHeight = containerHeight;
+        canvasWidth = canvasHeight * svgAspect;
+      } else {
+        // Container is taller, width is limiting
+        canvasWidth = containerWidth;
+        canvasHeight = canvasWidth / svgAspect;
+      }
+
+      // Account for retina displays
+      const dpr = window.devicePixelRatio || 1;
+      el.wedgeCanvas.width = canvasWidth * dpr;
+      el.wedgeCanvas.height = canvasHeight * dpr;
+      el.wedgeCanvas.style.width = canvasWidth + 'px';
+      el.wedgeCanvas.style.height = canvasHeight + 'px';
+      wedgeCtx.scale(dpr, dpr);
+
+      // Store scale for rendering (canvas coords to SVG viewBox coords)
+      el.wedgeCanvas.canvasScale = canvasWidth / 450;
+    }
+
+    // Initial resize
+    resizeWedgeCanvas();
+    window.addEventListener('resize', resizeWedgeCanvas);
 
     // Create layers for static face, dynamic wedges, and center timer text
     const faceLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1089,171 +1271,6 @@
 
     function getCircles(time) {
       return ClockLogic.getCircles(time, RADIUS);
-    }
-
-    function getTimerEndAngle(timerCircle) {
-      if (!timerCircle) return -90;
-
-      if (state.mode === 'end') {
-        const now = new Date();
-        const curMin = now.getMinutes() + now.getSeconds() / 60;
-        return (curMin / 60) * 360 - 90;
-      }
-      
-      if (state.mode === 'cw') {
-        return ((60 - timerCircle.t) / 60) * 360 - 90;
-      }
-      
-      return (timerCircle.t / 60) * 360 - 90;
-    }
-
-    function getAngles(circle, timerEnd) {
-      if (circle.full) {
-        return { start: timerEnd, end: timerEnd + 360 };
-      }
-      
-      if (state.mode === 'end') {
-        const now = new Date();
-        const curMin = now.getMinutes() + now.getSeconds() / 60;
-        const start = (curMin / 60) * 360 - 90;
-        let end = (state.endTime / 60) * 360 - 90;
-        if (end < start) end += 360;
-        return { start: start, end: end };
-      }
-      
-      if (state.mode === 'cw') {
-        return { start: ((60 - circle.t) / 60) * 360 - 90, end: -90 };
-      }
-      
-      return { start: -90, end: (circle.t / 60) * 360 - 90 };
-    }
-
-    function createWedge(circle, start, end, color, opacity, ringWidth) {
-      const startRad = start * Math.PI / 180;
-      const endRad = end * Math.PI / 180;
-      let diff = end - start;
-      if (diff < 0) diff += 360;
-      const isDark = document.body.classList.contains('dark');
-      const strokeColor = color; // No black border, stroke matches fill
-      const isDigital = state.displayMode === 'digital' && ringWidth !== undefined;
-
-      const outerR = circle.r;
-      const innerR = isDigital ? outerR - ringWidth : 0;
-
-      const ox1 = CENTER + outerR * Math.cos(startRad);
-      const oy1 = CENTER + outerR * Math.sin(startRad);
-      const ox2 = CENTER + outerR * Math.cos(endRad);
-      const oy2 = CENTER + outerR * Math.sin(endRad);
-      const ix1 = CENTER + innerR * Math.cos(startRad);
-      const iy1 = CENTER + innerR * Math.sin(startRad);
-      const ix2 = CENTER + innerR * Math.cos(endRad);
-      const iy2 = CENTER + innerR * Math.sin(endRad);
-
-      if (circle.full) {
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-        if (isDigital) {
-          // Digital mode: donut shape
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          const d = [
-            'M', CENTER + outerR, CENTER,
-            'A', outerR, outerR, 0, 1, 1, CENTER - outerR, CENTER,
-            'A', outerR, outerR, 0, 1, 1, CENTER + outerR, CENTER,
-            'M', CENTER + innerR, CENTER,
-            'A', innerR, innerR, 0, 1, 0, CENTER - innerR, CENTER,
-            'A', innerR, innerR, 0, 1, 0, CENTER + innerR, CENTER,
-            'Z'
-          ].join(' ');
-          path.setAttribute('d', d);
-          path.setAttribute('fill', color);
-          path.setAttribute('fill-rule', 'evenodd');
-          path.setAttribute('stroke', strokeColor);
-          path.setAttribute('stroke-width', '2');
-          if (opacity < 1) path.setAttribute('fill-opacity', opacity);
-
-          // Edge line from inner to outer radius
-          const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          l.setAttribute('x1', ix1);
-          l.setAttribute('y1', iy1);
-          l.setAttribute('x2', ox1);
-          l.setAttribute('y2', oy1);
-          l.setAttribute('stroke', strokeColor);
-          l.setAttribute('stroke-width', '2');
-          if (opacity < 1) l.setAttribute('stroke-opacity', opacity);
-
-          g.appendChild(path);
-          g.appendChild(l);
-        } else {
-          // Analog mode: full circle
-          const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          c.setAttribute('cx', CENTER);
-          c.setAttribute('cy', CENTER);
-          c.setAttribute('r', circle.r);
-          c.setAttribute('fill', color);
-          c.setAttribute('stroke', strokeColor);
-          c.setAttribute('stroke-width', '2');
-          if (opacity < 1) c.setAttribute('fill-opacity', opacity);
-
-          const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          l.setAttribute('x1', CENTER);
-          l.setAttribute('y1', CENTER);
-          l.setAttribute('x2', ox1);
-          l.setAttribute('y2', oy1);
-          l.setAttribute('stroke', strokeColor);
-          l.setAttribute('stroke-width', '2');
-          if (opacity < 1) l.setAttribute('stroke-opacity', opacity);
-
-          g.appendChild(c);
-          g.appendChild(l);
-        }
-        return g;
-      }
-
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const largeArc = diff > 180 ? 1 : 0;
-
-      if (isDigital) {
-        // Digital mode: arc ring
-        const dParts = [
-          'M', ox1, oy1,
-          'A', outerR, outerR, 0, largeArc, 1, ox2, oy2,
-          'L', ix2, iy2,
-          'A', innerR, innerR, 0, largeArc, 0, ix1, iy1,
-          'Z'
-        ];
-        path.setAttribute('d', dParts.join(' '));
-      } else {
-        // Analog mode: pie wedge
-        const dParts = [
-          'M', CENTER, CENTER,
-          'L', ox1, oy1,
-          'A', circle.r, circle.r, 0, largeArc, 1, ox2, oy2,
-          'Z'
-        ];
-        path.setAttribute('d', dParts.join(' '));
-      }
-      path.setAttribute('fill', color);
-      path.setAttribute('stroke', strokeColor);
-      path.setAttribute('stroke-width', '2');
-      path.setAttribute('stroke-linejoin', 'miter');
-      if (opacity < 1) path.setAttribute('fill-opacity', opacity);
-      g.appendChild(path);
-
-      // Add edge line following time (moving edge)
-      // CCW: end edge moves, CW/END: start edge moves
-      const movingOuter = (state.mode === 'ccw') ? { x: ox2, y: oy2 } : { x: ox1, y: oy1 };
-      const movingInner = (state.mode === 'ccw') ? { x: ix2, y: iy2 } : { x: ix1, y: iy1 };
-      const edge = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      edge.setAttribute('x1', isDigital ? movingInner.x : CENTER);
-      edge.setAttribute('y1', isDigital ? movingInner.y : CENTER);
-      edge.setAttribute('x2', movingOuter.x);
-      edge.setAttribute('y2', movingOuter.y);
-      edge.setAttribute('stroke', isDark ? '#fff' : '#000');
-      edge.setAttribute('stroke-width', '2');
-      if (opacity < 1) edge.setAttribute('stroke-opacity', opacity);
-      g.appendChild(edge);
-      return g;
     }
 
     function getLabelPosition(minute) {
@@ -1349,41 +1366,41 @@
     }
 
     function render() {
+      const circles = getCircles(state.remaining);
+
+      // Clear canvas and SVG wedge layer
+      if (wedgeCtx && el.wedgeCanvas) {
+        const scale = el.wedgeCanvas.canvasScale || 1;
+        const canvasCenter = CENTER * scale;
+        wedgeCtx.save();
+        wedgeCtx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+        const dpr = window.devicePixelRatio || 1;
+        wedgeCtx.scale(dpr * scale, dpr * scale);
+        ClockLogic.renderWedgesToCanvas(
+          wedgeCtx,
+          el.wedgeCanvas.width / dpr,
+          el.wedgeCanvas.height / dpr,
+          circles,
+          state.mode,
+          state.color,
+          state.running,
+          state.displayMode,
+          state.endTime,
+          new Date(),
+          CENTER
+        );
+        wedgeCtx.restore();
+      }
+
+      // Clear SVG wedge layer (no longer used for rendering, kept for compatibility)
       wedgeLayer.innerHTML = '';
 
-      const circles = getCircles(state.remaining);
       if (circles.length === 0) {
         // Clear timer text when no circles
         if (state.displayMode === 'digital') {
           timerText.textContent = '';
         }
         return;
-      }
-
-      const timerEnd = getTimerEndAngle(circles[0]);
-      const opacity = !state.running ? PREVIEW_DIM : 1;
-      const numCircles = circles.length;
-
-      // Digital mode: calculate ring width for outer 1/3 zone
-      const ringWidth = state.displayMode === 'digital'
-        ? (RING_ZONE_WIDTH - (numCircles - 1) * RING_GAP) / numCircles
-        : undefined;
-
-      for (let i = 0; i < circles.length; i++) {
-        const c = circles[i];
-
-        // Digital mode: override radius to fit in outer 1/3 zone
-        if (state.displayMode === 'digital') {
-          c.r = RING_ZONE_OUTER - i * (ringWidth + RING_GAP);
-        }
-
-        const angles = getAngles(c, timerEnd);
-        // Darkening: outer=0.85, middle=0.7, inner=0.5 for digital; analog uses standard
-        const colorFactor = state.displayMode === 'digital'
-          ? (i === 0 ? 0.85 : (i === 1 ? DARKEN.MIDDLE : DARKEN.INNER))
-          : (c.r === RADIUS.INNER ? DARKEN.INNER : DARKEN.MIDDLE);
-        const color = c.full ? darken(state.color, colorFactor) : state.color;
-        wedgeLayer.appendChild(createWedge(c, angles.start, angles.end, color, opacity, ringWidth));
       }
 
       // Update center timer text (digital mode only)

@@ -457,26 +457,26 @@ console.log('-------------------------------');
 
 (function testLivePreview() {
   const dom = createDOM();
-  const { document } = dom.window;
+  const { document, state } = dom.window;
 
   const timeInput = document.getElementById('time');
-  const svg = document.getElementById('clock');
+  const wedgeCanvas = document.getElementById('wedgeCanvas');
 
-  // Initially no wedges
-  let paths = svg.querySelectorAll('path');
-  assertEqual(paths.length, 0, 'No wedges initially');
+  // Canvas should exist
+  assert(wedgeCanvas !== null, 'Wedge canvas exists');
 
-  // Type a number - should show preview wedge
+  // Initially no remaining time
+  assertEqual(state.remaining, 0, 'No remaining time initially');
+
+  // Type a number - should update state for preview
   timeInput.value = '30';
   timeInput.dispatchEvent(new dom.window.Event('input'));
-  paths = svg.querySelectorAll('path');
-  assert(paths.length > 0, 'Wedge appears after typing "30"');
+  assert(state.remaining > 0 || state.total > 0, 'Wedge appears after typing "30"');
 
-  // Clear input - wedges should disappear
+  // Clear input - state should reset
   timeInput.value = '';
   timeInput.dispatchEvent(new dom.window.Event('input'));
-  paths = svg.querySelectorAll('path');
-  assertEqual(paths.length, 0, 'Wedges disappear when input cleared');
+  assertEqual(state.remaining, 0, 'Wedges disappear when input cleared');
 
   dom.window.close();
 })();
@@ -691,17 +691,17 @@ console.log('-------------------------------');
 
 (function testTimeCapping() {
   const dom = createDOM();
-  const { document } = dom.window;
+  const { document, ClockLogic, state } = dom.window;
 
   const timeInput = document.getElementById('time');
-  const svg = document.getElementById('clock');
+  const RADIUS = { FULL: 180, MIDDLE: 120, INNER: 60 };
 
-  // 200 minutes should show 3 circles (capped at 180)
+  // 200 minutes should be capped at 180, which gives 3 circles
   timeInput.value = '200';
   timeInput.dispatchEvent(new dom.window.Event('input'));
 
-  const circles = svg.querySelectorAll('circle');
-  assertEqual(circles.length, 3, '200 minutes shows 3 circles (capped at 180)');
+  // Check state.remaining is capped at 180
+  assertEqual(state.remaining, 180, '200 minutes shows 3 circles (capped at 180)');
 
   dom.window.close();
 })();
@@ -789,12 +789,11 @@ console.log('--------------------------------------------');
 
 (function testModeSwitchWhileRunning() {
   const dom = createDOM();
-  const { document } = dom.window;
+  const { document, state } = dom.window;
 
   const timeInput = document.getElementById('time');
   const goBtn = document.getElementById('goBtn');
   const modeBtns = document.querySelectorAll('[data-mode]');
-  const svg = document.getElementById('clock');
 
   // Start timer in CCW mode
   timeInput.value = '5';
@@ -806,9 +805,8 @@ console.log('--------------------------------------------');
   modeBtns[1].click();
   assert(modeBtns[1].classList.contains('active'), 'CW mode active while running');
 
-  // Should still have wedges
-  const paths = svg.querySelectorAll('path');
-  assert(paths.length > 0, 'Wedges still visible after mode switch');
+  // Timer should still be running with remaining time (wedges rendered to canvas)
+  assert(state.running && state.remaining > 0, 'Wedges still visible after mode switch');
 
   dom.window.close();
 })();
@@ -973,25 +971,29 @@ console.log('--------------------------------------------');
 
 (function test60_120_180Circles() {
   const dom = createDOM();
-  const { document } = dom.window;
+  const { document, ClockLogic } = dom.window;
 
   const timeInput = document.getElementById('time');
-  const svg = document.getElementById('clock');
+  const RADIUS = { FULL: 180, MIDDLE: 120, INNER: 60 };
 
   // 60 minutes = 1 full circle
   timeInput.value = '60';
   timeInput.dispatchEvent(new dom.window.Event('input'));
-  assertEqual(svg.querySelectorAll('circle').length, 1, '60 minutes: 1 full circle');
+  let circles = ClockLogic.getCircles(60, RADIUS);
+  assertEqual(circles.length, 1, '60 minutes: 1 full circle');
+  assert(circles[0].full, '60 minutes: circle is full');
 
   // 120 minutes = 2 full circles
   timeInput.value = '120';
   timeInput.dispatchEvent(new dom.window.Event('input'));
-  assertEqual(svg.querySelectorAll('circle').length, 2, '120 minutes: 2 full circles');
+  circles = ClockLogic.getCircles(120, RADIUS);
+  assertEqual(circles.length, 2, '120 minutes: 2 full circles');
 
   // 180 minutes = 3 full circles
   timeInput.value = '180';
   timeInput.dispatchEvent(new dom.window.Event('input'));
-  assertEqual(svg.querySelectorAll('circle').length, 3, '180 minutes: 3 full circles');
+  circles = ClockLogic.getCircles(180, RADIUS);
+  assertEqual(circles.length, 3, '180 minutes: 3 full circles');
 
   dom.window.close();
 })();
@@ -1930,6 +1932,220 @@ console.log('-------------------');
   const presetBtns = document.querySelectorAll('.preset-btn');
   assert(presetBtns[0].getAttribute('aria-label').includes('5'), 'Preset 5 has descriptive aria-label');
   assert(presetBtns[0].getAttribute('aria-label').includes('minute'), 'Preset aria-label mentions minutes');
+
+  dom.window.close();
+})();
+
+console.log('');
+
+// ============================================
+// CANVAS RENDERING TESTS
+// ============================================
+
+console.log('Unit Tests: ClockLogic.getWedgeAngles');
+console.log('--------------------------------------');
+
+(function testGetWedgeAnglesCcwPartial() {
+  const { logic, dom } = getClockLogic();
+
+  // CCW mode with partial circle (30 mins)
+  const circle = { r: 180, t: 30, full: false };
+  const timerEnd = (30 / 60) * 360 - 90; // 90 degrees
+  const angles = logic.getWedgeAngles(circle, timerEnd, 'ccw', null, new Date());
+
+  assertEqual(angles.start, -90, 'CCW partial wedge starts at -90 (top)');
+  assertEqual(angles.end, 90, 'CCW partial wedge ends at 90 (30 mins)');
+
+  dom.window.close();
+})();
+
+(function testGetWedgeAnglesCcwFull() {
+  const { logic, dom } = getClockLogic();
+
+  // CCW mode with full circle
+  const circle = { r: 180, t: 60, full: true };
+  const timerEnd = -90;
+  const angles = logic.getWedgeAngles(circle, timerEnd, 'ccw', null, new Date());
+
+  assertEqual(angles.start, timerEnd, 'Full circle starts at timerEnd');
+  assertEqual(angles.end, timerEnd + 360, 'Full circle ends at timerEnd + 360');
+
+  dom.window.close();
+})();
+
+(function testGetWedgeAnglesCwPartial() {
+  const { logic, dom } = getClockLogic();
+
+  // CW mode with partial circle (30 mins)
+  const circle = { r: 180, t: 30, full: false };
+  const timerEnd = ((60 - 30) / 60) * 360 - 90; // 90 degrees
+  const angles = logic.getWedgeAngles(circle, timerEnd, 'cw', null, new Date());
+
+  assertEqual(angles.end, -90, 'CW partial wedge ends at -90 (top)');
+  // Start angle should be at (60-30)/60 * 360 - 90 = 90
+  assertEqual(angles.start, 90, 'CW partial wedge starts at 90');
+
+  dom.window.close();
+})();
+
+(function testGetWedgeAnglesEndMode() {
+  const { logic, dom } = getClockLogic();
+
+  // END mode: endTime at 30 minutes, now at 15 minutes
+  const now = new Date('2024-01-15T10:15:00');
+  const circle = { r: 180, t: 15, full: false };
+  const endTime = 30; // minutes on clock face
+  const timerEnd = (endTime / 60) * 360 - 90;
+  const angles = logic.getWedgeAngles(circle, timerEnd, 'end', endTime, now);
+
+  // Current time is 15 mins, end time is 30 mins
+  const expectedStart = (15 / 60) * 360 - 90; // 0 degrees
+  const expectedEnd = (30 / 60) * 360 - 90; // 90 degrees
+  assertEqual(angles.start, expectedStart, 'END mode starts at current time');
+  assertEqual(angles.end, expectedEnd, 'END mode ends at target time');
+
+  dom.window.close();
+})();
+
+console.log('');
+
+console.log('Unit Tests: ClockLogic.getTimerEndAngle');
+console.log('----------------------------------------');
+
+(function testGetTimerEndAngleCcw() {
+  const { logic, dom } = getClockLogic();
+
+  const circle = { r: 180, t: 30, full: false };
+  const angle = logic.getTimerEndAngle(circle, 'ccw', null, new Date());
+
+  // CCW mode: angle = (t / 60) * 360 - 90
+  const expected = (30 / 60) * 360 - 90;
+  assertEqual(angle, expected, 'CCW timer end angle calculated correctly');
+
+  dom.window.close();
+})();
+
+(function testGetTimerEndAngleCw() {
+  const { logic, dom } = getClockLogic();
+
+  const circle = { r: 180, t: 30, full: false };
+  const angle = logic.getTimerEndAngle(circle, 'cw', null, new Date());
+
+  // CW mode: angle = ((60 - t) / 60) * 360 - 90
+  const expected = ((60 - 30) / 60) * 360 - 90;
+  assertEqual(angle, expected, 'CW timer end angle calculated correctly');
+
+  dom.window.close();
+})();
+
+(function testGetTimerEndAngleEnd() {
+  const { logic, dom } = getClockLogic();
+
+  const now = new Date('2024-01-15T10:15:00');
+  const circle = { r: 180, t: 15, full: false };
+  const endTime = 30;
+  const angle = logic.getTimerEndAngle(circle, 'end', endTime, now);
+
+  // END mode: angle based on current minute
+  const curMin = 15 + 0 / 60; // 10:15:00
+  const expected = (curMin / 60) * 360 - 90;
+  assertEqual(angle, expected, 'END timer end angle based on current time');
+
+  dom.window.close();
+})();
+
+console.log('');
+
+console.log('Unit Tests: Canvas Context Mock');
+console.log('--------------------------------');
+
+(function testRenderWedgesToCanvasExists() {
+  const { logic, dom } = getClockLogic();
+
+  assert(typeof logic.renderWedgesToCanvas === 'function', 'ClockLogic.renderWedgesToCanvas function exists');
+
+  dom.window.close();
+})();
+
+(function testRenderWedgesToCanvasClearsPrevious() {
+  const { logic, dom } = getClockLogic();
+
+  // Create a mock canvas context
+  let clearRectCalled = false;
+  const mockCtx = {
+    clearRect: function(x, y, w, h) { clearRectCalled = true; },
+    beginPath: function() {},
+    moveTo: function() {},
+    arc: function() {},
+    lineTo: function() {},
+    closePath: function() {},
+    fill: function() {},
+    stroke: function() {},
+    save: function() {},
+    restore: function() {}
+  };
+
+  const circles = logic.getCircles(30, { FULL: 180, MIDDLE: 120, INNER: 60 });
+  logic.renderWedgesToCanvas(mockCtx, 450, 450, circles, 'ccw', '#ff6b35', true, 'analog', null, new Date(), 225);
+
+  assert(clearRectCalled, 'Canvas cleared before rendering');
+
+  dom.window.close();
+})();
+
+(function testRenderWedgesToCanvasDrawsWedges() {
+  const { logic, dom } = getClockLogic();
+
+  // Create a mock canvas context that tracks calls
+  let beginPathCount = 0;
+  let fillCount = 0;
+  const mockCtx = {
+    clearRect: function() {},
+    beginPath: function() { beginPathCount++; },
+    moveTo: function() {},
+    arc: function() {},
+    lineTo: function() {},
+    closePath: function() {},
+    fill: function() { fillCount++; },
+    stroke: function() {},
+    save: function() {},
+    restore: function() {}
+  };
+
+  const circles = logic.getCircles(30, { FULL: 180, MIDDLE: 120, INNER: 60 });
+  logic.renderWedgesToCanvas(mockCtx, 450, 450, circles, 'ccw', '#ff6b35', true, 'analog', null, new Date(), 225);
+
+  assert(beginPathCount > 0, 'Canvas beginPath called for wedges');
+  assert(fillCount > 0, 'Canvas fill called for wedges');
+
+  dom.window.close();
+})();
+
+(function testRenderWedgesToCanvasDigitalMode() {
+  const { logic, dom } = getClockLogic();
+
+  // Track arc calls to verify digital mode draws rings
+  let arcCalls = [];
+  const mockCtx = {
+    clearRect: function() {},
+    beginPath: function() {},
+    moveTo: function() {},
+    arc: function(x, y, r, start, end, ccw) {
+      arcCalls.push({ x, y, r, start, end, ccw });
+    },
+    lineTo: function() {},
+    closePath: function() {},
+    fill: function() {},
+    stroke: function() {},
+    save: function() {},
+    restore: function() {}
+  };
+
+  const circles = logic.getCircles(30, { FULL: 180, MIDDLE: 120, INNER: 60 });
+  logic.renderWedgesToCanvas(mockCtx, 450, 450, circles, 'ccw', '#ff6b35', true, 'digital', null, new Date(), 225);
+
+  // Digital mode should draw two arcs per wedge (outer and inner for ring)
+  assert(arcCalls.length >= 2, 'Digital mode draws multiple arcs for ring wedge');
 
   dom.window.close();
 })();
