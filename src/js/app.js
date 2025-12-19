@@ -606,6 +606,7 @@
       el.goBtn.classList.remove('running');
       el.goBtn.textContent = 'Play';
       el.goBtn.title = 'Resume timer';
+      document.getElementById('timerStatus').textContent = 'Timer paused';
       updateTitle();
     }
 
@@ -619,6 +620,7 @@
       el.goBtn.classList.add('running');
       el.goBtn.textContent = 'Pause';
       el.goBtn.title = 'Pause the timer';
+      document.getElementById('timerStatus').textContent = 'Timer resumed';
       animate();
     }
 
