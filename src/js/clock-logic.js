@@ -160,6 +160,8 @@
         // Validate cookie name (alphanumeric, underscore, hyphen only)
         if (!/^[a-zA-Z0-9_-]+$/.test(name)) return;
         var sanitizedValue = encodeURIComponent(String(value));
+        // Reject values over 4000 chars to stay within 4KB cookie limit
+        if (sanitizedValue.length > 4000) return;
         var expires = '';
         if (days) {
           var date = new Date();

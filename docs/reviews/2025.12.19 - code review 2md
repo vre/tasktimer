@@ -61,7 +61,9 @@
   4. Match PiP render rate to capture rate (both 30fps)
 
 
-  ---
+---
+
+GPT 5.1 Codex Max
 
 Findings
 
@@ -70,3 +72,33 @@ Important – Input validation gap: In ClockLogic.parseInput the hh:mm branch ac
 Suggestion – Fragile build stripping: build.js removes dev <link>/<script> tags with newline-sensitive, single-match regexes. Minor formatting changes in index.html (extra spaces, different line breaks) could leave external assets in the release bundle. A DOM-based removal (e.g., parse HTML and drop nodes by tag/src) would make the build step more robust.
 Suggestion – Startup cost: The beep data URI is generated eagerly on load in app.js even when sound is off by default. That does Base64 work (~66 KB) every page load and in tests. Lazy-generate only when sound is enabled or on first alarm to reduce startup work.
 Well done: Strong separation of pure logic vs. UI, extensive JSDOM coverage including accessibility/tooling behaviors, and careful cookie/hash sanitization.
+
+---
+
+Gemini 3 Pro Preview
+
+1. Plan Alignment Analysis
+File Split Implementation: The separation of TaskTimer.html into src components (index.html, style.css, app.js, clock-logic.js) has been implemented correctly and matches the file structure in the plan.
+Build Script: The build.js script correctly assembles the release file by injecting the external resources, fulfilling the core requirement.
+Test Strategy Deviation: The plan stated "Update clock.test.js to load from src", but the implementation continues to load the built TaskTimer.html (via a pretest build step).
+Assessment: This is a justified deviation. Testing the generated artifact (TaskTimer.html) ensures the release build is valid and self-contained. However, it adds a build step to every test run.
+2. Code Quality Assessment
+Inconsistent JavaScript Standards (Important):
+clock-logic.js uses ES5 syntax (var, no const/let), likely adhering to the CHANGELOG item #30 "FIX: ES5 compatibility".
+app.js uses ES6+ syntax (const, let) extensively.
+Recommendation: Clarify if ES5 compatibility is still a hard requirement. If yes, app.js must be refactored to use var. If no, clock-logic.js should be updated to const/let for consistency.
+Global Namespace: ClockLogic and state are declared in the global scope. While acceptable for this specific single-file architecture, it relies on implicit ordering (logic before app).
+Worker Implementation: The inline Worker blob in app.js is a clever solution for the single-file requirement and is implemented correctly with a fallback.
+3. Architecture and Design Review
+Separation of Concerns: The split between ClockLogic (pure functions) and app.js (UI/State) is excellent. It makes the logic easier to test and maintain.
+Build Process: The regex-based build script is simple and effective for this specific use case. It avoids heavy bundler dependencies, keeping the project lightweight.
+4. Documentation and Standards
+Project Structure: AGENTS.md has been updated to reflect the new structure.
+Changelog: The CHANGELOG.md is up to date.
+5. Issues and Recommendations
+Severity	Issue	Recommendation
+Important	Inconsistent JS Syntax (ES5 vs ES6)	Decide on a target JS version. If ES5 is required (as per Changelog #30), refactor app.js to remove const/let.
+Suggestion	Test Target	Consider adding a test mode that runs against index.html directly for faster dev cycles, while keeping the artifact test for CI/pre-release.
+Suggestion	Variable Declarations	app.js declares var timerWorker but uses const elsewhere. Standardize on let/const if ES6 is allowed.
+Summary:
+The refactoring to a split development structure is a significant improvement for maintainability. The build process is solid. The main point to address is the inconsistency in JavaScript versions, which contradicts the previously stated ES5 compatibility goal.

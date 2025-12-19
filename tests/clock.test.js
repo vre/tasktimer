@@ -1262,6 +1262,22 @@ console.log('-------------------------------------------');
   dom.window.close();
 })();
 
+(function testSetCookieRejectsLongValue() {
+  const { logic, dom } = getClockLogic();
+
+  // Cookie values over 4000 chars should be rejected (4KB limit safety margin)
+  const longValue = 'x'.repeat(4001);
+  logic.setCookie('longCookie', longValue, 365);
+  // Cookie should not be set
+  assert(!dom.window.document.cookie.includes('longCookie'), 'Cookie with value over 4000 chars rejected');
+
+  // Short values should still work
+  logic.setCookie('shortCookie', 'short', 365);
+  assert(dom.window.document.cookie.includes('shortCookie'), 'Cookie with short value accepted');
+
+  dom.window.close();
+})();
+
 (function testSetCookieHasSameSite() {
   const { logic, dom } = getClockLogic();
 
