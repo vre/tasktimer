@@ -1,0 +1,72 @@
+> read AGENTS.md and then do code review for whole codebase
+
+⏺ I'll read AGENTS.md first, then use the code review skill for the codebase review.
+
+⏺ Read(AGENTS.md)
+  ⎿  Read 46 lines
+
+⏺ Now I'll use the code review skill to review the codebase.
+
+⏺ /superpowers:requesting-code-review
+
+⏺ Now I'll dispatch the code-reviewer agent to review the entire codebase.
+
+⏺ superpowers:code-reviewer(Full codebase code review)
+  ⎿  Done (14 tool uses · 89.2k tokens · 1m 25s)
+
+⏺ Code Review Complete
+
+  The code-reviewer agent thoroughly reviewed the TaskTimer codebase. Here's the summary:
+
+  Overall Assessment: Ready for production ✓
+
+  The codebase demonstrates solid engineering with excellent test coverage (280 tests passing), proper separation of concerns following AGENTS.md architecture, and good security practices.
+
+  ---
+  Strengths
+
+  - Architecture - Clean separation: ClockLogic has pure functions, state object holds mutable state, el caches DOM refs
+  - Testing - Comprehensive: unit tests, integration tests, security tests, regression tests, canvas rendering tests
+  - Security - Input validation, cookie SameSite=Lax, URL hash parameter allowlist
+  - Accessibility - ARIA attributes, screen reader status region, focus-visible styles
+
+  ---
+  Issues Found
+
+  Important (Should Fix)
+
+  | Issue                                   | Location               | Impact                       |
+  |-----------------------------------------|------------------------|------------------------------|
+  | Worker blob URL never revoked           | app.js:20-21           | Memory leak                  |
+  | Missing cookie value length validation  | clock-logic.js:156-168 | Silent failure risk          |
+  | CSS tooltips not keyboard accessible    | style.css:7-26         | Accessibility gap            |
+  | PiP renders at 60fps, captures at 30fps | app.js:1109-1120       | CPU waste                    |
+  | END mode hour rollover edge case        | app.js:439-446         | Potential delayed completion |
+
+  Minor
+
+  | Issue                                        | Location       |
+  |----------------------------------------------|----------------|
+  | Pause state not announced to screen readers  | app.js:591-606 |
+  | Theme color could match selected clock color | index.html:11  |
+  | CHANGELOG.md missing                         | /docs/         |
+  | Unused SVG wedgeLayer code                   | app.js:315-316 |
+
+  ---
+  Recommendations
+
+  1. Add URL.revokeObjectURL() after worker creation
+  2. Add :focus-visible to tooltip CSS alongside :hover
+  3. Create CHANGELOG.md as required by AGENTS.md
+  4. Match PiP render rate to capture rate (both 30fps)
+
+
+  ---
+
+Findings
+
+Important – Plan deviation: The plan calls for tests to “load from src/” (see 2025-12-19-dev-release-split-design.md), but current tests still read the built TaskTimer.html via createDOM() in clock.test.js. This means failures in the dev HTML/CSS/JS split (e.g., missing assets in src) might be hidden by a previously built artifact. Consider pointing tests at index.html (or building in-memory from src files) to align with the plan and catch source regressions earlier.
+Important – Input validation gap: In ClockLogic.parseInput the hh:mm branch accepts empty segments (e.g., “:” or “:5”), treating them as 0 and starting a capped timer instead of rejecting. That allows malformed input to launch a timer silently. Tighten validation to require both hour and minute digits (e.g., regex like /^\d{1,2}:\d{2}$/) in clock-logic.js.
+Suggestion – Fragile build stripping: build.js removes dev <link>/<script> tags with newline-sensitive, single-match regexes. Minor formatting changes in index.html (extra spaces, different line breaks) could leave external assets in the release bundle. A DOM-based removal (e.g., parse HTML and drop nodes by tag/src) would make the build step more robust.
+Suggestion – Startup cost: The beep data URI is generated eagerly on load in app.js even when sound is off by default. That does Base64 work (~66 KB) every page load and in tests. Lazy-generate only when sound is enabled or on first alarm to reduce startup work.
+Well done: Strong separation of pure logic vs. UI, extensive JSDOM coverage including accessibility/tooling behaviors, and careful cookie/hash sanitization.

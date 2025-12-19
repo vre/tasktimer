@@ -142,6 +142,12 @@ console.log('-----------------------------------------------------------');
   assertEqual(logic.parseInput('25:00', 'end', now1, 180), null, 'Invalid hour 25 returns null');
   assertEqual(logic.parseInput('10:60', 'end', now1, 180), null, 'Invalid minute 60 returns null');
 
+  // Malformed hh:mm - missing parts should be rejected
+  assertEqual(logic.parseInput(':', 'end', now1, 180), null, 'Lone colon ":" returns null');
+  assertEqual(logic.parseInput(':5', 'end', now1, 180), null, 'Missing hour ":5" returns null');
+  assertEqual(logic.parseInput('10:', 'end', now1, 180), null, 'Missing minute "10:" returns null');
+  assertEqual(logic.parseInput('::', 'end', now1, 180), null, 'Double colon "::" returns null');
+
   dom.window.close();
 })();
 

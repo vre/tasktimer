@@ -20,6 +20,8 @@
 
         if (mode === 'end') {
           if (input.includes(':')) {
+            // Validate hh:mm format - require digits on both sides of colon
+            if (!/^\d{1,2}:\d{1,2}$/.test(input)) return null;
             var parts = input.split(':').map(Number);
             var h = parts[0];
             var m = parts[1];
