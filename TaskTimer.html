@@ -536,6 +536,9 @@
       },
 
       parseInput: function(input, mode, now, maxMinutes) {
+        // Reject empty or excessively long input
+        if (!input || input.length > 20) return null;
+
         if (mode === 'end') {
           if (input.includes(':')) {
             var parts = input.split(':').map(Number);
@@ -892,15 +895,23 @@
 
       requestWakeLock: async function() {
         if ('wakeLock' in navigator) {
+          // Release existing lock first to prevent listener accumulation
+          if (this.wakeLock) {
+            try {
+              this.wakeLock.release();
+            } catch (e) {}
+            this.wakeLock = null;
+          }
           try {
             this.wakeLock = await navigator.wakeLock.request('screen');
             // Handle automatic release by browser (e.g., tab hidden, low battery)
             var self = this;
             this.wakeLock.addEventListener('release', function() {
               self.wakeLock = null;
-            });
+            }, { once: true }); // Use once: true to auto-remove listener
           } catch (e) {
             // Wake lock request failed (e.g., low battery, tab not visible)
+            this.wakeLock = null;
           }
         }
       },
@@ -935,7 +946,7 @@
         '    self.postMessage({ type: "complete" });',
         '    endTime = null;',
         '  }',
-        '}, 500);'
+        '}, 100);' // Check every 100ms for better accuracy
       ].join('\n');
       var blob = new Blob([workerCode], { type: 'application/javascript' });
       timerWorker = new Worker(URL.createObjectURL(blob));
@@ -1375,6 +1386,9 @@
       state.alarmHandle = ClockLogic.playAlarm(state);
       wedgeLayer.innerHTML = '';
 
+      // Announce completion to screen readers
+      document.getElementById('timerStatus').textContent = 'Timer completed!';
+
       const isDark = document.body.classList.contains('dark');
 
       if (state.displayMode === 'digital') {
@@ -1435,14 +1449,15 @@
     }
 
     function stopCompletionBlink() {
+      // Always clean up interval defensively (prevents leaks if state.completed is wrong)
+      if (state.overtimeInterval) {
+        clearInterval(state.overtimeInterval);
+        state.overtimeInterval = null;
+      }
       if (state.completed) {
         state.completed = false;
         ClockLogic.stopAlarm(state.alarmHandle);
         state.alarmHandle = null;
-        if (state.overtimeInterval) {
-          clearInterval(state.overtimeInterval);
-          state.overtimeInterval = null;
-        }
         timerText.textContent = '';
         wedgeLayer.innerHTML = '';
       }
@@ -1544,6 +1559,9 @@
     }
 
     function start() {
+      // Guard against multiple simultaneous starts (race condition)
+      if (state.running) return;
+
       const input = el.timeInput.value.trim();
       if (!input) return;
 
@@ -1945,9 +1963,13 @@
         el.displayModeBtn.title = 'Switch to analog display';
       }
       if (hashParams.time) {
-        el.timeInput.value = hashParams.time;
-        state.timeValue = hashParams.time;
-        el.goBtn.disabled = false;
+        // Validate time parameter: only allow digits, colon, and decimal point
+        var sanitizedTime = hashParams.time.replace(/[^\d:.]/g, '');
+        if (sanitizedTime && sanitizedTime.length <= 10) {
+          el.timeInput.value = sanitizedTime;
+          state.timeValue = sanitizedTime;
+          el.goBtn.disabled = false;
+        }
       }
 
       // Apply mode to UI
@@ -2240,6 +2262,27 @@
       if (!document.hidden && state.running && !state.paused) {
         ClockLogic.requestWakeLock();
       }
+    });
+
+    // Clean up resources on page unload
+    window.addEventListener('beforeunload', function() {
+      if (state.animFrame) {
+        cancelAnimationFrame(state.animFrame);
+        state.animFrame = null;
+      }
+      if (state.previewFrame) {
+        cancelAnimationFrame(state.previewFrame);
+        state.previewFrame = null;
+      }
+      if (state.overtimeInterval) {
+        clearInterval(state.overtimeInterval);
+        state.overtimeInterval = null;
+      }
+      if (timerWorker) {
+        timerWorker.postMessage({ type: 'stop' });
+      }
+      ClockLogic.releaseWakeLock();
+      ClockLogic.stopAlarm(state.alarmHandle);
     });
 
     el.colorBtn.style.background = state.color;

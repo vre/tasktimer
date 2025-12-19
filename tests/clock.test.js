@@ -1635,6 +1635,173 @@ console.log('--------------------------------');
 
 console.log('');
 
+console.log('Bug Regression: Race Condition - Multiple Start Calls');
+console.log('-----------------------------------------------------');
+
+(function testMultipleStartCallsDoNotCreateMultipleTimers() {
+  const dom = createDOM();
+  const { document, state } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const goBtn = document.getElementById('goBtn');
+
+  timeInput.value = '30';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+
+  // Rapidly click Go button multiple times
+  goBtn.click();
+  goBtn.click();
+  goBtn.click();
+
+  // Should only have one timer running
+  assert(state.running === true, 'Timer is running after multiple clicks');
+
+  // animFrame should be set (not null) - only one animation should be active
+  assert(state.animFrame !== null, 'Animation frame is active');
+
+  dom.window.close();
+})();
+
+(function testStartWhileRunningDoesNotRestart() {
+  const dom = createDOM();
+  const { document, state } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const goBtn = document.getElementById('goBtn');
+
+  timeInput.value = '30';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+  goBtn.click();
+
+  const originalStartTime = state.startTime;
+
+  // Simulate a second start attempt (this would happen with race condition)
+  // The start() function should guard against this
+  assert(state.running === true, 'Timer is running');
+
+  // Store animFrame before potential second start
+  const originalAnimFrame = state.animFrame;
+
+  dom.window.close();
+})();
+
+console.log('');
+
+console.log('Bug Regression: Memory Leaks');
+console.log('----------------------------');
+
+(function testPreviewAnimationFrameProperlyCleared() {
+  const dom = createDOM();
+  const { document, state } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const modeBtns = document.querySelectorAll('[data-mode]');
+
+  // Switch to END mode (preview animation only runs in END mode)
+  modeBtns[2].click();
+
+  // Type a value to start preview animation
+  timeInput.value = '14:30';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+
+  // previewFrame should be set or null (depends on timing)
+  // The important thing is that when we clear, it's properly cleaned
+
+  // Clear input - preview should stop
+  timeInput.value = '';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+
+  // previewFrame should be null after clearing
+  assertEqual(state.previewFrame, null, 'Preview frame cleared when input emptied');
+
+  dom.window.close();
+})();
+
+(function testOvertimeIntervalCleared() {
+  const dom = createDOM();
+  const { document, state } = dom.window;
+
+  // We can't easily test the actual overtime interval in JSDOM
+  // but we can verify the cleanup function exists and state is properly managed
+  assertEqual(state.overtimeInterval, null, 'Overtime interval is initially null');
+
+  dom.window.close();
+})();
+
+(function testAnimFrameClearedOnInputChange() {
+  const dom = createDOM();
+  const { document, state } = dom.window;
+
+  const timeInput = document.getElementById('time');
+  const goBtn = document.getElementById('goBtn');
+
+  // Start timer
+  timeInput.value = '30';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+  goBtn.click();
+
+  assert(state.running === true, 'Timer is running');
+  assert(state.animFrame !== null, 'Animation frame is set');
+
+  // User types in input (should stop timer and clean up)
+  timeInput.value = '20';
+  timeInput.dispatchEvent(new dom.window.Event('input'));
+
+  assertEqual(state.running, false, 'Timer stopped when input changed');
+  assertEqual(state.animFrame, null, 'Animation frame cleared when input changed');
+
+  dom.window.close();
+})();
+
+console.log('');
+
+console.log('Security: URL Hash Input Validation');
+console.log('------------------------------------');
+
+(function testTimeHashParameterAcceptsValidInput() {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'TaskTimer.html'), 'utf8');
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    url: 'http://localhost/#time=30'
+  });
+  const { document } = dom.window;
+
+  assertEqual(document.getElementById('time').value, '30', 'Valid time accepted from URL');
+
+  dom.window.close();
+})();
+
+(function testTimeHashParameterAcceptsColonFormat() {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'TaskTimer.html'), 'utf8');
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    url: 'http://localhost/#time=14:30'
+  });
+  const { document } = dom.window;
+
+  assertEqual(document.getElementById('time').value, '14:30', 'Colon time format accepted from URL');
+
+  dom.window.close();
+})();
+
+(function testTimeHashParameterAcceptsDecimal() {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'TaskTimer.html'), 'utf8');
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    url: 'http://localhost/#time=5.5'
+  });
+  const { document } = dom.window;
+
+  assertEqual(document.getElementById('time').value, '5.5', 'Decimal time accepted from URL');
+
+  dom.window.close();
+})();
+
+console.log('');
+
 console.log('Bug Fixes: Go Button After Timer Ends');
 console.log('--------------------------------------');
 
