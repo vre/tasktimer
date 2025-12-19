@@ -174,7 +174,7 @@
       parseHash: function() {
         const hash = window.location.hash.substring(1);
         const params = {};
-        const allowedParams = ['color', 'mode', 'marks', 'dark', 'sound', 'time', 'display'];
+        const allowedParams = ['color', 'mode', 'marks', 'dark', 'sound', 'time', 'display', 'autostart', 'controls'];
         if (hash) {
           hash.split('&').forEach(function(pair) {
             const parts = pair.split('=');

@@ -4,9 +4,9 @@
 
 Analog countdown timer that runs entirely in your browser from single file. No ads, no servers, no tracking, no dependencies.
 
-| Dark mode | Light mode | Multi-ring (60+ min) | Picture-in-Picture |
-|:-:|:-:|:-:|:-:|
-| ![Dark mode](screenshots/clock-in-dark-mode-with-controls.png) | ![](screenshots/clock-in-light-mode-5mins.png) | ![Multi-ring](screenshots/clock-over-60mins.png) | ![PiP](screenshots/clock-in-pip.png) |
+| Dark mode | Light mode | Digital (60+ min) | END mode | Picture-in-Picture |
+|:-:|:-:|:-:|:-:|:-:|
+| ![Dark mode](screenshots/dark-25min-controls.png) | ![Light mode](screenshots/light-5min.png) | ![Digital](screenshots/digital-82min.png) | ![END mode](screenshots/end-mode-25min.png) | ![PiP](screenshots/clock-pip-in-light.png) |
 
 ## Features
 

@@ -707,7 +707,7 @@
       parseHash: function() {
         const hash = window.location.hash.substring(1);
         const params = {};
-        const allowedParams = ['color', 'mode', 'marks', 'dark', 'sound', 'time', 'display'];
+        const allowedParams = ['color', 'mode', 'marks', 'dark', 'sound', 'time', 'display', 'autostart', 'controls'];
         if (hash) {
           hash.split('&').forEach(function(pair) {
             const parts = pair.split('=');
@@ -2040,6 +2040,16 @@
       // Request notification permission immediately if sound is enabled
       if (state.sound) {
         ClockLogic.requestNotificationPermission();
+      }
+
+      // Hide controls if requested via URL (for automated screenshots)
+      if (hashParams.controls === '0') {
+        document.querySelector('.controls').style.display = 'none';
+      }
+
+      // Autostart timer if requested via URL (for automated screenshots)
+      if (hashParams.autostart === '1' && !el.goBtn.disabled) {
+        el.goBtn.click();
       }
     })();
 

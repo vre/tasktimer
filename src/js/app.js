@@ -961,6 +961,16 @@
       if (state.sound) {
         ClockLogic.requestNotificationPermission();
       }
+
+      // Hide controls if requested via URL (for automated screenshots)
+      if (hashParams.controls === '0') {
+        document.querySelector('.controls').style.display = 'none';
+      }
+
+      // Autostart timer if requested via URL (for automated screenshots)
+      if (hashParams.autostart === '1' && !el.goBtn.disabled) {
+        el.goBtn.click();
+      }
     })();
 
     // Dark mode toggle
