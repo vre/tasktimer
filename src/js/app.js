@@ -1226,71 +1226,102 @@
       }
     });
 
-    // Touch-friendly controls toggle for mobile devices
-    // Tap on clock area (outside controls) to toggle controls visibility when running
+    // Controls visibility - pure JS (no CSS class juggling)
     var clockContainer = document.querySelector('.clock-container');
     var controls = document.querySelector('.controls');
+    var isTouchDevice = 'ontouchstart' in window;
     var controlsVisible = true;
+    var clickShowActive = false; // Browser: clicked to show, waiting for hover to release
 
-    function showControls() {
+    function setControlsVisible(visible) {
       if (!controls) return;
-      controls.classList.remove('touch-hidden');
-      controls.classList.add('touch-visible');
+      controls.style.opacity = visible ? '1' : '0';
+      // Touch: block events when hidden. Browser: keep events so hover works.
+      if (isTouchDevice) {
+        controls.style.pointerEvents = visible ? 'auto' : 'none';
+      }
+      controlsVisible = visible;
+    }
+
+    function resetControls() {
+      if (!controls) return;
+      controls.style.opacity = '';
+      controls.style.pointerEvents = '';
       controlsVisible = true;
+      clickShowActive = false;
     }
 
-    function hideControls() {
-      if (!controls) return;
-      controls.classList.remove('touch-visible');
-      controls.classList.add('touch-hidden');
-      controlsVisible = false;
-    }
-
-    // Auto-hide controls when timer starts (for touch devices that can't hover)
-    // Watch for body.running class to be added/removed
-    var bodyObserver = null;
-    if ('ontouchstart' in window && document.body) {
-      bodyObserver = new MutationObserver(function(mutations) {
-        // Guard against cleanup scenarios where body may be undefined
-        if (!document || !document.body) return;
-        mutations.forEach(function(mutation) {
-          if (mutation.attributeName === 'class') {
-            var isRunning = document.body.classList.contains('running');
-            if (isRunning && controlsVisible) {
-              setTimeout(hideControls, 500); // Small delay so user sees timer started
-            } else if (!isRunning && !controlsVisible) {
-              showControls();
-            }
+    // Watch for timer start/stop
+    var bodyObserver = new MutationObserver(function(mutations) {
+      if (!document || !document.body) return;
+      mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'class') {
+          if (document.body.classList.contains('running')) {
+            // Timer started - hide controls after delay
+            setTimeout(function() { setControlsVisible(false); }, 500);
+          } else {
+            // Timer stopped - show controls
+            resetControls();
           }
-        });
+        }
       });
+    });
+    if (document.body) {
       bodyObserver.observe(document.body, { attributes: true });
     }
 
-    clockContainer.addEventListener('touchend', function(e) {
-      // Only handle single-finger taps
-      if (e.changedTouches.length !== 1) return;
-      // Only toggle when timer is running
-      if (!state.running) return;
+    if (isTouchDevice) {
+      // Touch: tap clock to toggle controls
+      clockContainer.addEventListener('touchend', function(e) {
+        if (!state.running) return;
+        if (e.changedTouches.length !== 1) return;
+        if (controlsVisible) {
+          setControlsVisible(false);
+        } else {
+          e.preventDefault();
+          setControlsVisible(true);
+        }
+      });
 
-      // Toggle controls visibility
-      if (controlsVisible) {
-        hideControls();
-      } else {
-        // Prevent click event from firing on now-visible controls
-        e.preventDefault();
-        showControls();
-      }
-    });
+      // Touch: tap on hidden controls area shows them first
+      controls.addEventListener('touchend', function(e) {
+        e.stopPropagation();
+        if (!controlsVisible) {
+          e.preventDefault();
+          setControlsVisible(true);
+        }
+      });
+    } else {
+      // Browser: hover shows/hides controls
+      controls.addEventListener('mouseenter', function() {
+        if (!state.running) return;
+        if (clickShowActive) {
+          // Release click-show mode, now in normal hover mode
+          clickShowActive = false;
+        }
+        setControlsVisible(true);
+      });
 
-    // Prevent controls from hiding when tapping on controls themselves
-    controls.addEventListener('touchend', function(e) {
-      e.stopPropagation();
-      // If controls not visible, show them but don't propagate to toggle
-      if (!controlsVisible) {
-        showControls();
-      }
-    });
+      controls.addEventListener('mouseleave', function() {
+        if (!state.running) return;
+        setControlsVisible(false);
+      });
+
+      // Browser: click on clock to toggle controls
+      clockContainer.addEventListener('click', function(e) {
+        if (!state.running) return;
+        // Ignore if click was inside controls
+        if (controls.contains(e.target)) return;
+
+        if (controlsVisible) {
+          setControlsVisible(false);
+          clickShowActive = false;
+        } else {
+          setControlsVisible(true);
+          clickShowActive = true;
+        }
+      });
+    }
 
     // Re-request wake lock when page becomes visible again
     document.addEventListener('visibilitychange', function() {

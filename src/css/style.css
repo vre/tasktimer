@@ -82,21 +82,7 @@
       display: none;
     }
     body.running .controls {
-      opacity: 0.1;
       transition: opacity 0.3s;
-    }
-    body.running .controls:hover,
-    body.running .controls:focus-within {
-      opacity: 1;
-    }
-    /* Touch devices: class-based visibility overrides CSS rules */
-    .controls.touch-hidden {
-      opacity: 0 !important;
-      pointer-events: none !important;
-    }
-    .controls.touch-visible {
-      opacity: 1 !important;
-      pointer-events: auto !important;
     }
     .fullscreen-btn {
       width: 2.5rem;

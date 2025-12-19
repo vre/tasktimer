@@ -178,6 +178,7 @@ Changes listed in chronological order. Deprecated features marked with ~striketh
 121. FIX: Accessibility - announce pause/resume to screen readers
 122. PWA: theme-color meta tag updates to match selected clock color
 123. Standardize on ES6: convert clock-logic.js from var to const/let
+124. Controls visibility: pure JS implementation replacing CSS class juggling for reliable hover/click behavior
 
 ## Future
 
