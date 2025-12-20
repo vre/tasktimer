@@ -14,26 +14,26 @@
 - COMMIT with oneliner commit messages starting with verb, no coauthors
 
 ## Project
-Development in `src/` folder. Run `npm run build` to generate single-file `TaskTimer.html`.
+Development in `src/` folder. Run `npm run build` to generate single-file `TimerPie.html`.
 
 ## File Structure
 - `src/index.html` - Development HTML (loads external CSS/JS)
 - `src/css/style.css` - All styles
 - `src/js/clock-logic.js` - Pure functions (testable, no side effects)
 - `src/js/app.js` - State, UI, event handlers
-- `TaskTimer.html` - Generated release file (do not edit directly)
+- `TimerPie.html` - Generated release file (do not edit directly)
 - `scripts/screenshots.sh` - Screenshot automation (Chrome headless + ImageMagick)
 
 ## Commands
 ```bash
-npm run build            # Generate TaskTimer.html from src/
-npm test                 # Run tests (builds first, then tests TaskTimer.html)
+npm run build            # Generate TimerPie.html from src/
+npm test                 # Run tests (builds first, then tests TimerPie.html)
 npm start                # Start local server at http://localhost:8080
 ./scripts/screenshots.sh # Regenerate documentation screenshots (requires npm start)
 ```
 
 ## Testing
-Tests run against built `TaskTimer.html`, not `src/` directly. The `pretest` hook rebuilds from src/ before each test run, so stale artifacts are not an issue. Always use `npm test`.
+Tests run against built `TimerPie.html`, not `src/` directly. The `pretest` hook rebuilds from src/ before each test run, so stale artifacts are not an issue. Always use `npm test`.
 
 ## Development
 - **Local server**: `npm start` then open <http://localhost:8080>

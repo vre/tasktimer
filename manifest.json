@@ -1,11 +1,11 @@
 {
-  "name": "TaskTimer",
-  "short_name": "TaskTimer",
+  "name": "TimerPie",
+  "short_name": "TimerPie",
   "description": "Visual clock timer with analog and digital display modes",
-  "start_url": "TaskTimer.html",
+  "start_url": "TimerPie.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ff6b35",
+  "theme_color": "#f9fafb",
   "orientation": "any",
   "icons": [
     {

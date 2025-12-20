@@ -1,4 +1,4 @@
-# TaskTimer implemented features
+# TimerPie implemented features
 
 Changes listed in chronological order. Deprecated features marked with ~strikethrough~.
 
@@ -68,7 +68,7 @@ Changes listed in chronological order. Deprecated features marked with ~striketh
 49. Input field width increased to fit time formats
 50. Dark mode: toggle button inverts colors, preference saved in cookie
 51. Pause/Resume: Go button becomes Pause when running, Play when paused (CCW/CW modes only)
-52. Tab title countdown: shows "M:SS - TaskTimer" while running/paused
+52. Tab title countdown: shows "M:SS - TimerPie" while running/paused
 53. No pause in END mode: target time is fixed, button stays disabled while running
 54. END mode short input: 1-4 digit input shows full hh:mm after Go
 55. Fullscreen mode: button triggers browser fullscreen API, hides controls
@@ -86,7 +86,7 @@ Changes listed in chronological order. Deprecated features marked with ~striketh
 67. PWA icons: SVG source icon with PNG exports (192x192, 512x512)
 68. Sound preference in URL hash: sound=off parameter for bookmarking muted state
 69. Go button after completion: enabled if input has valid value so user can restart
-70. File renamed: clock.html to TaskTimer.html
+70. File renamed: clock.html to TimerPie.html
 71. Wake lock: keeps screen on while timer is running using Screen Wake Lock API
 
 ### Security & Accessibility
@@ -185,6 +185,9 @@ Changes listed in chronological order. Deprecated features marked with ~striketh
 128. URL params for automation: `autostart=1` starts timer on load, `controls=0` hides controls
 129. FIX: Tooltip line-height inheritance from icon buttons
 130. PWA theme-color: follows light/dark mode instead of pie color (cleaner status bar on mobile)
+131. Info modal: ℹ️ button shows version number and GitHub link
+132. Install instructions: clickable link in info modal shows platform-specific PWA install steps, embedded QR code, focus trapping for accessibility
+133. Build-time version: version number injected from package.json during build
 
 ## Future
 

@@ -119,7 +119,13 @@
       exitFullscreenBtn: document.getElementById('exitFullscreenBtn'),
       pipBtn: document.getElementById('pipBtn'),
       pipCanvas: document.getElementById('pipCanvas'),
-      pipVideo: document.getElementById('pipVideo')
+      pipVideo: document.getElementById('pipVideo'),
+      infoBtn: document.getElementById('infoBtn'),
+      infoModal: document.getElementById('infoModal'),
+      infoCloseBtn: document.getElementById('infoCloseBtn'),
+      installLink: document.getElementById('installLink'),
+      installModal: document.getElementById('installModal'),
+      installCloseBtn: document.getElementById('installCloseBtn')
     };
     const wedgeCtx = el.wedgeCanvas ? el.wedgeCanvas.getContext('2d') : null;
 
@@ -418,14 +424,14 @@
         var secs = Math.round((state.remaining - mins) * 60);
         if (secs >= 60) { mins++; secs = 0; }
         const timeStr = mins + ':' + (secs < 10 ? '0' : '') + secs;
-        document.title = timeStr + ' - TaskTimer';
+        document.title = timeStr + ' - TimerPie';
         // Update ARIA live region once per minute to avoid overwhelming screen readers
         if (mins !== lastAnnouncedMin) {
           lastAnnouncedMin = mins;
           document.getElementById('timerStatus').textContent = mins + ' minute' + (mins !== 1 ? 's' : '') + ' remaining';
         }
       } else {
-        document.title = 'TaskTimer';
+        document.title = 'TimerPie';
         lastAnnouncedMin = -1;
         document.getElementById('timerStatus').textContent = '';
       }
@@ -1008,6 +1014,67 @@
       render();
     });
 
+    // Focus trap for modals
+    function trapFocus(modal, e) {
+      if (e.key !== 'Tab') return;
+      var focusable = modal.querySelectorAll('a[href], button, input, [tabindex]:not([tabindex="-1"])');
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    // Info modal
+    el.infoBtn.addEventListener('click', function() {
+      el.infoModal.classList.add('show');
+      el.infoCloseBtn.focus();
+    });
+
+    el.infoCloseBtn.addEventListener('click', function() {
+      el.infoModal.classList.remove('show');
+      el.infoBtn.focus();
+    });
+
+    el.infoModal.addEventListener('click', function(e) {
+      if (e.target === el.infoModal) {
+        el.infoModal.classList.remove('show');
+        el.infoBtn.focus();
+      }
+    });
+
+    el.infoModal.addEventListener('keydown', function(e) {
+      trapFocus(el.infoModal, e);
+    });
+
+    // Install instructions modal
+    el.installLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      el.infoModal.classList.remove('show');
+      el.installModal.classList.add('show');
+      el.installCloseBtn.focus();
+    });
+
+    el.installCloseBtn.addEventListener('click', function() {
+      el.installModal.classList.remove('show');
+      el.infoBtn.focus();
+    });
+
+    el.installModal.addEventListener('click', function(e) {
+      if (e.target === el.installModal) {
+        el.installModal.classList.remove('show');
+        el.infoBtn.focus();
+      }
+    });
+
+    el.installModal.addEventListener('keydown', function(e) {
+      trapFocus(el.installModal, e);
+    });
+
     // Fullscreen toggle
     el.fullscreenBtn.addEventListener('click', function() {
       if (document.documentElement.requestFullscreen) {
@@ -1227,7 +1294,11 @@
           document.body.classList.add('fullscreen');
         }
       } else if (e.code === 'Escape') {
-        if (document.fullscreenElement) {
+        if (el.installModal.classList.contains('show')) {
+          el.installModal.classList.remove('show');
+        } else if (el.infoModal.classList.contains('show')) {
+          el.infoModal.classList.remove('show');
+        } else if (document.fullscreenElement) {
           document.exitFullscreen();
         }
       } else if (e.code === 'KeyP') {

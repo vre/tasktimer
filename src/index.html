@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
-  TaskTimer Analog
+  TimerPie
   Copyright (c) 2025 Ville Reijonen
-  MIT License - https://github.com/vre/tasktimer
+  MIT License - https://github.com/vre/timerpie
 -->
 <html lang="en">
 <head>
@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <title>TaskTimer</title>
+  <title>TimerPie</title>
   <link rel="stylesheet" href="css/style.css">
   <!-- BUILD:CSS -->
 </head>
@@ -70,6 +70,8 @@
       </div>
       <div class="divider"></div>
       <div class="control-row">
+        <button class="icon-btn" id="infoBtn" title="About TimerPie" aria-label="About TimerPie">ℹ️</button>
+        <span style="flex: 1;"></span>
         <button class="icon-btn" id="soundBtn" title="Turn alarm on" aria-label="Toggle alarm sound">🔕</button>
         <span style="flex: 1;"></span>
         <button class="fullscreen-btn" id="pipBtn" title="Picture-in-Picture mode" aria-label="Picture-in-Picture">⧉</button>
@@ -86,6 +88,48 @@
       </div>
     </div>
     <div id="timerStatus" role="status" aria-live="polite" class="sr-only"></div>
+    <div class="info-modal" id="infoModal" role="dialog" aria-labelledby="infoTitle" aria-modal="true">
+      <div class="info-content">
+        <h2 id="infoTitle">TimerPie</h2>
+        <p class="info-version">Version <!-- BUILD:VERSION --></p>
+        <p class="info-description">Analog countdown timer that runs entirely in your browser.</p>
+        <ul class="info-features">
+          <li>Works on desktop, tablet &amp; mobile</li>
+          <li>Single HTML file - save &amp; use offline</li>
+          <li>Install TimerPie <a href="#" id="installLink">as App</a></li>
+          <li>Keyboard: <u>Space</u> Pause/Play, <u>F</u>ullscreen, <u>P</u>ictureInPicture, <u>Esc</u></li>
+        </ul>
+        <p><a href="https://github.com/vre/timerpie" target="_blank" rel="noopener">github.com/vre/timerpie</a></p>
+        <button class="info-close" id="infoCloseBtn">Close</button>
+      </div>
+    </div>
+    <div class="info-modal" id="installModal" role="dialog" aria-labelledby="installTitle" aria-modal="true">
+      <div class="info-content install-content">
+        <h2 id="installTitle">Install as App</h2>
+        <div class="install-layout">
+          <dl class="install-instructions">
+            <dt>Chrome (desktop)</dt>
+            <dd>Install icon in address bar (🖥️ with ↓)</dd>
+            <dt>Edge (desktop)</dt>
+            <dd>Install icon in address bar (⊞ with +)</dd>
+            <dt>Safari (Mac)</dt>
+            <dd>File → Add to Dock</dd>
+            <dt>iOS / iPadOS Safari</dt>
+            <dd>Share button (▢ with ↑) → Add to Home Screen</dd>
+            <dt>Android Chrome</dt>
+            <dd>Menu (⋮) → Add to home screen</dd>
+            <dt>Android Firefox</dt>
+            <dd>Menu (⋮) → Add app to Home screen</dd>
+          </dl>
+          <div class="install-qr">
+            <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 33 33" shape-rendering="crispEdges" role="img" aria-label="QR code to TimerPie"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#000000" d="M0 0.5h7m3 0h4m2 0h4m3 0h1m2 0h7M0 1.5h1m5 0h1m4 0h1m1 0h5m2 0h1m1 0h1m3 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h1m1 0h1m1 0h4m2 0h1m2 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h1m2 0h1m2 0h1m1 0h1m2 0h4m1 0h1m1 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h2m1 0h2m2 0h1m1 0h2m5 0h1m1 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h1m3 0h1m1 0h4m2 0h2m2 0h1m1 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h1m1 0h2m2 0h2m5 0h2M0 8.5h1m1 0h5m2 0h1m2 0h2m1 0h1m1 0h1m4 0h3m1 0h5M1 9.5h1m1 0h3m2 0h1m3 0h1m3 0h1m2 0h5m2 0h2m1 0h2m1 0h1M1 10.5h2m3 0h2m1 0h1m1 0h1m3 0h1m2 0h1m1 0h2m2 0h2m2 0h1m1 0h2M8 11.5h4m2 0h2m5 0h3m1 0h1m2 0h4M1 12.5h2m1 0h4m7 0h1m2 0h2m1 0h1m1 0h2m2 0h3m2 0h1M2 13.5h1m1 0h2m1 0h4m1 0h1m1 0h3m3 0h4m2 0h1m2 0h1m1 0h2M0 14.5h3m1 0h1m1 0h1m2 0h2m1 0h3m4 0h1m1 0h2m2 0h2m2 0h3M0 15.5h4m5 0h1m2 0h1m1 0h1m1 0h1m1 0h4m3 0h6M0 16.5h3m1 0h3m1 0h1m2 0h1m2 0h1m1 0h2m1 0h1m2 0h4m1 0h2m3 0h1M1 17.5h2m2 0h1m3 0h3m2 0h1m1 0h5m2 0h5m1 0h2m1 0h1M3 18.5h2m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m4 0h1m2 0h4m1 0h2M0 19.5h1m2 0h1m3 0h3m2 0h1m1 0h1m2 0h4m5 0h5M0 20.5h1m2 0h1m2 0h1m1 0h4m1 0h4m2 0h4m1 0h2m1 0h3m1 0h1M0 21.5h1m2 0h3m1 0h1m3 0h1m1 0h1m1 0h1m1 0h2m4 0h1m2 0h1m2 0h2m1 0h1M0 22.5h1m1 0h1m3 0h2m1 0h1m1 0h3m1 0h2m1 0h1m1 0h2m2 0h2m1 0h1m1 0h3M0 23.5h1m2 0h2m2 0h2m1 0h1m2 0h1m1 0h1m5 0h1m4 0h2m1 0h2M0 24.5h1m3 0h7m1 0h1m1 0h4m4 0h1m1 0h6m1 0h2M8 25.5h1m2 0h1m2 0h1m1 0h1m1 0h2m1 0h2m1 0h1m3 0h1m1 0h2M0 26.5h7m5 0h2m1 0h2m1 0h1m2 0h1m1 0h2m1 0h1m1 0h1m1 0h2M0 27.5h1m5 0h1m1 0h1m2 0h2m1 0h3m2 0h1m1 0h4m3 0h5M0 28.5h1m1 0h3m1 0h1m1 0h2m5 0h1m2 0h1m2 0h1m2 0h6m1 0h2M0 29.5h1m1 0h3m1 0h1m1 0h1m1 0h8m2 0h3m2 0h1m2 0h1m1 0h1m1 0h1M0 30.5h1m1 0h3m1 0h1m1 0h1m3 0h3m4 0h1m1 0h2m1 0h4M0 31.5h1m5 0h1m2 0h1m3 0h2m1 0h1m2 0h5m2 0h1m1 0h3M0 32.5h7m1 0h2m3 0h1m3 0h1m1 0h1m2 0h3m2 0h1m1 0h3"/></svg>
+            <span class="info-subtext">Scan to open on mobile</span>
+            <a href="https://vre.github.io/timerpie/TimerPie.html" target="_blank" rel="noopener" class="info-subtext">vre.github.io/timerpie/TimerPie.html</a>
+          </div>
+        </div>
+        <button class="info-close" id="installCloseBtn">Close</button>
+      </div>
+    </div>
     <canvas id="pipCanvas" width="300" height="300" style="display:none;"></canvas>
     <video id="pipVideo" style="display:none;" muted></video>
   </div>

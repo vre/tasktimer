@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const src = path.join(__dirname, '../src');
+const pkg = require('../package.json');
 const html = fs.readFileSync(path.join(src, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(src, 'css/style.css'), 'utf8');
 const logic = fs.readFileSync(path.join(src, 'js/clock-logic.js'), 'utf8');
@@ -15,8 +16,9 @@ let output = html
   .replace(/\s*<script\s+src="js\/app\.js"\s*><\/script>\s*\n?/gi, '')
   // Inject combined content
   .replace('<!-- BUILD:CSS -->', `<style>\n${css}  </style>`)
-  .replace('<!-- BUILD:JS -->', `<script>\n${logic}\n${app}  </script>`);
+  .replace('<!-- BUILD:JS -->', `<script>\n${logic}\n${app}  </script>`)
+  .replace('<!-- BUILD:VERSION -->', pkg.version);
 
-const outPath = path.join(__dirname, '../TaskTimer.html');
+const outPath = path.join(__dirname, '../TimerPie.html');
 fs.writeFileSync(outPath, output);
-console.log('Built TaskTimer.html (' + output.length + ' bytes)');
+console.log('Built TimerPie.html (' + output.length + ' bytes)');

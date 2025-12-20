@@ -427,7 +427,7 @@
       top: 50%;
       left: 50%;
     }
-    #wedgeCanvas, svg {
+    #wedgeCanvas, #clock {
       position: absolute;
       top: 0;
       left: 0;
@@ -441,4 +441,134 @@
       overflow: hidden;
       clip: rect(0, 0, 0, 0);
       border: 0;
+    }
+    .info-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .info-modal.show {
+      display: flex;
+    }
+    .info-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      max-width: 20rem;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .info-content h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.5rem;
+    }
+    .info-version {
+      color: #666;
+      font-size: 0.875rem;
+      margin: 0 0 1rem 0;
+    }
+    .info-description {
+      margin: 0 0 0.75rem 0;
+      font-size: 0.9rem;
+    }
+    .info-features {
+      text-align: left;
+      margin: 0 0 1rem 0;
+      padding-left: 1.5rem;
+      font-size: 0.85rem;
+    }
+    .info-features li {
+      margin: 0.25rem 0;
+    }
+    .info-subtext {
+      font-size: 0.75rem;
+      color: #888;
+    }
+    .install-instructions {
+      text-align: left;
+      margin: 0 0 1rem 0;
+      font-size: 0.85rem;
+    }
+    .install-instructions dt {
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    .install-instructions dd {
+      margin: 0.125rem 0 0 0;
+      color: #666;
+    }
+    body.dark .info-subtext {
+      color: #777;
+    }
+    body.dark .install-instructions dd {
+      color: #999;
+    }
+    .install-content {
+      max-width: 36rem;
+    }
+    .install-layout {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+    .install-qr {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .install-qr img {
+      border-radius: 0.25rem;
+    }
+    .install-qr svg {
+      color-scheme: light only;
+    }
+    .install-qr svg path[fill] {
+      fill: #ffffff !important;
+    }
+    .install-qr svg path[stroke] {
+      stroke: #000000 !important;
+    }
+    .info-content a {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+    .info-content a:hover {
+      text-decoration: underline;
+    }
+    .info-close {
+      margin-top: 1rem;
+      padding: 0.5rem 1.5rem;
+      background: #e5e7eb;
+      border: none;
+      border-radius: 0.375rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .info-close:hover {
+      background: #d1d5db;
+    }
+    body.dark .info-content {
+      background: #222;
+      color: #eee;
+    }
+    body.dark .info-version {
+      color: #999;
+    }
+    body.dark .info-content a {
+      color: #60a5fa;
+    }
+    body.dark .info-close {
+      background: #444;
+      color: #eee;
+    }
+    body.dark .info-close:hover {
+      background: #555;
     }
